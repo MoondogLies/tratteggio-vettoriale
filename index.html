@@ -161,13 +161,15 @@ function makePrint(img,style,spacing,blur,contrast,gamma,offset,jitter){
  ctx.drawImage(img,0,0,w,h);
  const rgb=ctx.getImageData(0,0,w,h).data;
 
- let gray=grayscale(rgb,w,h);
- if(blur>0)gray=blurBox(gray,w,h,blur);
- gray=contrastAdjust(gray,contrast);
-
  const channels=[];
+ const perfectRegistration=(offset===0 && jitter===0);
 
  if(style==='mono'){
+  let gray=grayscale(rgb,w,h);
+  gray=normalize01(gray);
+  if(blur>0)gray=blurBox(gray,w,h,blur);
+  gray=contrastAdjust(gray,contrast);
+
   channels.push({
    name:'K', color:'#1a1a1a', angle:45,
    dx:0, dy:0,
@@ -175,8 +177,8 @@ function makePrint(img,style,spacing,blur,contrast,gamma,offset,jitter){
   });
  }else{
   const cmyk=rgbToCmyk(rgb,w,h);
-  const baseAngles={C:15,M:75,Y:0,K:45};
-  const baseOffsets={
+  const classicAngles={C:15,M:75,Y:0,K:45};
+  const classicOffsets={
    C:[offset,0],
    M:[0,offset],
    Y:[-offset*0.8,-offset*0.8],
@@ -189,15 +191,29 @@ function makePrint(img,style,spacing,blur,contrast,gamma,offset,jitter){
    if(blur>0)field=blurBox(field,w,h,blur);
    field=contrastAdjust(field,contrast);
 
-   const jx=(Math.random()-0.5)*2*jitter;
-   const jy=(Math.random()-0.5)*2*jitter;
+   let angle, dx, dy;
+
+   if(perfectRegistration){
+    angle=45;
+    dx=0;
+    dy=0;
+   }else{
+    angle=classicAngles[key];
+    dx=classicOffsets[key][0];
+    dy=classicOffsets[key][1];
+   }
+
+   if(jitter>0){
+    dx+=(Math.random()-0.5)*2*jitter;
+    dy+=(Math.random()-0.5)*2*jitter;
+   }
 
    channels.push({
     name:key,
     color:colors[key],
-    angle:baseAngles[key],
-    dx:baseOffsets[key][0]+jx,
-    dy:baseOffsets[key][1]+jy,
+    angle,
+    dx,
+    dy,
     field
    });
   }
@@ -225,6 +241,12 @@ ${groupMarkup}
   pathData:groups.flatMap(g=>g.paths),
   count:groups.reduce((n,g)=>n+g.paths.length,0)
  };
+}
+
+function normalize01(gray){
+ const out=new Float32Array(gray.length);
+ for(let i=0;i<gray.length;i++)out[i]=gray[i]/255;
+ return out;
 }
 
 function rgbToCmyk(data,w,h){
