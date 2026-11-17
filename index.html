@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Immagine → Tratteggio vettoriale SVG</title>
+<title>Immagine → Stampa da giornale · SVG vettoriale</title>
 <style>
 :root{color-scheme:dark}
 *{box-sizing:border-box}
@@ -18,7 +18,7 @@ button{background:#2f6fed;border:0;color:#fff;padding:10px 14px;border-radius:9p
 button.secondary{background:#33333d}
 button:disabled{opacity:.45;cursor:not-allowed}
 .views{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
-.box{background:#0c0c10;border:1px solid #2b2b34;border-radius:10px;min-height:380px;display:grid;place-items:center;overflow:hidden;padding:8px}
+.box{background:#f4f1e6;border:1px solid #2b2b34;border-radius:10px;min-height:400px;display:grid;place-items:center;overflow:hidden;padding:8px}
 canvas,svg{max-width:100%;max-height:70vh;display:block}
 .actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
 .status{margin-top:12px;color:#9d9daa;font-size:13px}
@@ -27,34 +27,39 @@ textarea{width:100%;height:150px;margin-top:14px;background:#0c0c10;color:#d8d8e
 </head>
 <body>
 <div class="panel">
-<h1>Immagine → Tratteggio vettoriale SVG</h1>
+<h1>Immagine → Stampa da giornale · SVG vettoriale</h1>
 
 <div class="row">
 <div><label>Immagine</label><input type="file" id="file" accept="image/*"></div>
 
 <div><label>Stile</label>
 <select id="style">
-<option value="horizontal">Linee orizzontali</option>
-<option value="vertical">Linee verticali</option>
-<option value="diagonal45">Diagonali 45°</option>
-<option value="diagonal135">Diagonali 135°</option>
-<option value="cross">Incrocio 45° + 135°</option>
+<option value="halftone">Halftone punti · quotidiano</option>
+<option value="lines">Linee di stampa</option>
+<option value="cross">Tratteggio incrociato</option>
 </select></div>
 
-<div><label>Distanza linee: <span id="spacingValue">3</span> px</label>
-<input type="range" id="spacing" min="1" max="14" value="3"></div>
+<div><label>Risoluzione: <span id="spacingValue">4</span> px</label>
+<input type="range" id="spacing" min="2" max="16" value="4"></div>
 
-<div><label>Sfocatura: <span id="blurValue">1</span></label>
-<input type="range" id="blur" min="0" max="6" step="0.5" value="1"></div>
+<div><label>Angolo reticolo</label>
+<select id="angle">
+<option value="15">15°</option>
+<option value="45" selected>45°</option>
+<option value="75">75°</option>
+</select></div>
 
-<div><label>Contrasto: <span id="contrastValue">25</span></label>
-<input type="range" id="contrast" min="-50" max="120" value="25"></div>
+<div><label>Sfocatura: <span id="blurValue">1.5</span></label>
+<input type="range" id="blur" min="0" max="6" step="0.5" value="1.5"></div>
 
-<div><label>Soglia nero: <span id="blackValue">10</span>%</label>
-<input type="range" id="black" min="0" max="70" value="10"></div>
+<div><label>Contrasto: <span id="contrastValue">30</span></label>
+<input type="range" id="contrast" min="-50" max="150" value="30"></div>
 
-<div><label>Spessore</label>
-<input type="number" id="stroke" value="0.8" min="0.1" step="0.1" style="width:80px"></div>
+<div><label>Gamma: <span id="gammaValue">1.25</span></label>
+<input type="range" id="gamma" min="0.5" max="3" step="0.05" value="1.25"></div>
+
+<div><label>Spessore inchiostro</label>
+<input type="number" id="stroke" value="0.7" min="0.1" step="0.1" style="width:80px"></div>
 
 <button id="convert">Converti</button>
 </div>
@@ -76,22 +81,25 @@ textarea{width:100%;height:150px;margin-top:14px;background:#0c0c10;color:#d8d8e
 <script>
 const $=id=>document.getElementById(id);
 const fileInput=$('file'), styleInput=$('style'), spacingInput=$('spacing'),
-blurInput=$('blur'), contrastInput=$('contrast'), blackInput=$('black'),
-strokeInput=$('stroke'), convertButton=$('convert'), downloadButton=$('download'),
-copyButton=$('copy'), statusEl=$('status'), preview=$('preview'),
-svgBox=$('svgBox'), output=$('output');
+angleInput=$('angle'), blurInput=$('blur'), contrastInput=$('contrast'),
+gammaInput=$('gamma'), strokeInput=$('stroke'), convertButton=$('convert'),
+downloadButton=$('download'), copyButton=$('copy'), statusEl=$('status'),
+preview=$('preview'), svgBox=$('svgBox'), output=$('output');
 
 let image=null, svg='';
 
-$('spacingValue').textContent=spacingInput.value;
-$('blurValue').textContent=blurInput.value;
-$('contrastValue').textContent=contrastInput.value;
-$('blackValue').textContent=blackInput.value;
+function refreshLabels(){
+ $('spacingValue').textContent=spacingInput.value;
+ $('blurValue').textContent=blurInput.value;
+ $('contrastValue').textContent=contrastInput.value;
+ $('gammaValue').textContent=gammaInput.value;
+}
+refreshLabels();
 
-spacingInput.oninput=()=>$('spacingValue').textContent=spacingInput.value;
-blurInput.oninput=()=>$('blurValue').textContent=blurInput.value;
-contrastInput.oninput=()=>$('contrastValue').textContent=contrastInput.value;
-blackInput.oninput=()=>$('blackValue').textContent=blackInput.value;
+spacingInput.oninput=refreshLabels;
+blurInput.oninput=refreshLabels;
+contrastInput.oninput=refreshLabels;
+gammaInput.oninput=refreshLabels;
 
 fileInput.onchange=()=>{
  const file=fileInput.files[0];
@@ -113,24 +121,25 @@ function drawPreview(img){
 
 convertButton.onclick=()=>{
  if(!image){statusEl.textContent='Carica prima un’immagine.';return}
- statusEl.textContent='Generazione tratteggio…';
+ statusEl.textContent='Generazione stampa…';
  convertButton.disabled=true;
  setTimeout(()=>{
   try{
-   const r=engrave(
+   const r=newspaper(
     image,
     styleInput.value,
     +spacingInput.value,
+    +angleInput.value,
     +blurInput.value,
     +contrastInput.value,
-    +blackInput.value/100,
+    +gammaInput.value,
     +strokeInput.value
    );
    svgBox.innerHTML=r.svg;
-   output.value=r.paths.join('\n');
+   output.value=r.pathData.join('\n');
    svg=r.svg;
    downloadButton.disabled=false;copyButton.disabled=false;
-   statusEl.textContent=`${r.paths.length} tracciati vettoriali generati.`;
+   statusEl.textContent=`${r.count} elementi vettoriali generati.`;
   }catch(e){console.error(e);statusEl.textContent='Errore: '+e.message}
   finally{convertButton.disabled=false}
  },30);
@@ -139,7 +148,7 @@ convertButton.onclick=()=>{
 downloadButton.onclick=()=>{
  const blob=new Blob([svg],{type:'image/svg+xml'});
  const a=document.createElement('a');
- a.href=URL.createObjectURL(blob);a.download='tratteggio-vettoriale.svg';a.click();
+ a.href=URL.createObjectURL(blob);a.download='stampa-giornale.svg';a.click();
  URL.revokeObjectURL(a.href);
 };
 
@@ -148,7 +157,7 @@ copyButton.onclick=async()=>{
  statusEl.textContent='Path SVG copiati negli appunti.';
 };
 
-function engrave(img,style,spacing,blur,contrast,blackThreshold,strokeWidth){
+function newspaper(img,style,spacing,angle,blur,contrast,gamma,strokeWidth){
  const max=1200, scale=Math.min(1,max/Math.max(img.width,img.height));
  const w=Math.max(1,Math.round(img.width*scale)), h=Math.max(1,Math.round(img.height*scale));
  const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
@@ -158,23 +167,47 @@ function engrave(img,style,spacing,blur,contrast,blackThreshold,strokeWidth){
  if(blur>0)gray=blurBox(gray,w,h,blur);
  gray=contrastAdjust(gray,contrast);
 
- let paths=[];
- if(style==='horizontal')paths=hLines(gray,w,h,spacing,strokeWidth,blackThreshold);
- else if(style==='vertical')paths=vLines(gray,w,h,spacing,strokeWidth,blackThreshold);
- else if(style==='diagonal45')paths=dLines(gray,w,h,spacing,strokeWidth,blackThreshold,1);
- else if(style==='diagonal135')paths=dLines(gray,w,h,spacing,strokeWidth,blackThreshold,-1);
- else{
-  paths=[...dLines(gray,w,h,spacing,strokeWidth,blackThreshold,1),
-         ...dLines(gray,w,h,spacing,strokeWidth,blackThreshold,-1)];
+ let elements=[];
+ if(style==='halftone'){
+  elements=halftoneDots(gray,w,h,spacing,angle,gamma)
+   .map(d=>({d,weight:0}));
+ }else if(style==='lines'){
+  elements=printLines(gray,w,h,spacing,angle,gamma,strokeWidth);
+ }else{
+  elements=[
+   ...printLines(gray,w,h,spacing,angle,gamma,strokeWidth),
+   ...printLines(gray,w,h,spacing,angle+90,gamma,strokeWidth*0.7)
+  ];
  }
 
+ const dotPaths=elements.filter(e=>e.weight===0).map(e=>e.d);
+ const lineGroups=groupByWeight(elements.filter(e=>e.weight>0));
+
+ const lineMarkup=lineGroups.map(group=>
+  `  <g fill="none" stroke="#151515" stroke-width="${group.weight}" stroke-linecap="round" stroke-linejoin="round">\n${group.paths.map(d=>`    <path d="${d}"/>`).join('\n')}\n  </g>`
+ ).join('\n');
+
  const svgText=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-<rect width="100%" height="100%" fill="#fff"/>
-<g fill="none" stroke="#000" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">
-${paths.map(d=>`<path d="${d}"/>`).join('\n')}
-</g>
+<rect width="100%" height="100%" fill="#f7f3e8"/>
+<g fill="#151515" stroke="none">\n${dotPaths.map(d=>`  <path d="${d}"/>`).join('\n')}\n</g>
+${lineMarkup}
 </svg>`;
- return{svg:svgText,paths};
+
+ return{
+  svg:svgText,
+  pathData:elements.map(e=>e.d),
+  count:elements.length
+ };
+}
+
+function groupByWeight(elements){
+ const groups=new Map();
+ for(const e of elements){
+  const key=e.weight.toFixed(3);
+  if(!groups.has(key))groups.set(key,{weight:e.weight,paths:[]});
+  groups.get(key).paths.push(e.d);
+ }
+ return [...groups.values()].sort((a,b)=>a.weight-b.weight);
 }
 
 function grayscale(data,w,h){
@@ -207,63 +240,107 @@ function contrastAdjust(gray,amount){
  return out;
 }
 
-function inkLength(luma,strokeWidth,blackThreshold){
- const darkness=1-luma/255;
- if(darkness<=blackThreshold)return 0;
- return Math.min(1,(darkness-blackThreshold)/(1-blackThreshold))*strokeWidth*6;
+function sampleBilinear(g,w,h,x,y){
+ x=Math.max(0,Math.min(w-1.001,x));
+ y=Math.max(0,Math.min(h-1.001,y));
+ const x0=Math.floor(x), y0=Math.floor(y);
+ const x1=Math.min(w-1,x0+1), y1=Math.min(h-1,y0+1);
+ const fx=x-x0, fy=y-y0;
+ const a=g[y0*w+x0], b=g[y0*w+x1], c=g[y1*w+x0], d=g[y1*w+x1];
+ return a*(1-fx)*(1-fy)+b*fx*(1-fy)+c*(1-fx)*fy+d*fx*fy;
 }
 
-function hLines(g,w,h,spacing,stroke,black){
+function inkAmount(luma,gamma){
+ let darkness=1-luma/255;
+ darkness=Math.pow(darkness,gamma);
+ return Math.max(0,Math.min(1,darkness));
+}
+
+function halftoneDots(g,w,h,spacing,angleDeg,gamma){
  const paths=[];
- for(let y=0;y<h;y+=spacing){
-  let d='',on=false;
-  for(let x=0;x<w;x++){
-   const len=inkLength(g[y*w+x],stroke,black);
-   if(len>0){if(!on){d+=`M ${x} ${y}`;on=true}else d+=` L ${x} ${y}`}
-   else if(on){d+=` L ${x} ${y}`;on=false}
+ const rad=angleDeg*Math.PI/180;
+ const cos=Math.cos(rad), sin=Math.sin(rad);
+ const half=spacing/2;
+ const extent=Math.ceil((w+h)/spacing)+4;
+
+ for(let row=-extent;row<=extent;row++){
+  for(let col=-extent;col<=extent;col++){
+   const u=col*spacing, v=row*spacing;
+   const x=u*cos-v*sin;
+   const y=u*sin+v*cos;
+   if(x<-spacing||x>w+spacing||y<-spacing||y>h+spacing)continue;
+   const luma=sampleBilinear(g,w,h,x,y);
+   const ink=inkAmount(luma,gamma);
+   if(ink<0.015)continue;
+   const r=half*Math.sqrt(ink);
+   if(r<0.18)continue;
+   paths.push(circlePath(x,y,r));
   }
-  if(on)d+=` L ${w-1} ${y}`;
-  if(d)paths.push(d);
  }
  return paths;
 }
 
-function vLines(g,w,h,spacing,stroke,black){
- const paths=[];
- for(let x=0;x<w;x+=spacing){
-  let d='',on=false;
-  for(let y=0;y<h;y++){
-   const len=inkLength(g[y*w+x],stroke,black);
-   if(len>0){if(!on){d+=`M ${x} ${y}`;on=true}else d+=` L ${x} ${y}`}
-   else if(on){d+=` L ${x} ${y}`;on=false}
-  }
-  if(on)d+=` L ${x} ${h-1}`;
-  if(d)paths.push(d);
- }
- return paths;
+function circlePath(cx,cy,r){
+ return `M ${r2(cx-r)} ${r2(cy)} `+
+  `a ${r2(r)} ${r2(r)} 0 1 0 ${r2(2*r)} 0 `+
+  `a ${r2(r)} ${r2(r)} 0 1 0 ${r2(-2*r)} 0 Z`;
 }
 
-function dLines(g,w,h,spacing,stroke,black,slope){
- const paths=[];
- const limit=w+h;
- for(let offset=-h;offset<limit;offset+=spacing){
-  let d='',on=false;
-  for(let y=0;y<h;y++){
-   const x=slope===1?y+offset:offset-y;
-   if(x<0||x>=w){
-    if(on){d+=` L ${clamp(x,0,w-1)} ${y}`;on=false}
+function printLines(g,w,h,spacing,angleDeg,gamma,strokeWidth){
+ const elements=[];
+ const rad=angleDeg*Math.PI/180;
+ const cos=Math.cos(rad), sin=Math.sin(rad);
+ const extent=Math.ceil((w+h)/spacing)+4;
+ const levels=6;
+ const buckets=Array.from({length:levels},()=>[]);
+
+ for(let row=-extent;row<=extent;row++){
+  let d='',on=false,avg=0,count=0;
+  for(let col=-extent;col<=extent;col++){
+   const u=col*spacing, v=row*spacing;
+   const x=u*cos-v*sin, y=u*sin+v*cos;
+   if(x<-spacing||x>w+spacing||y<-spacing||y>h+spacing){
+    if(on){
+     d+=` L ${r2(x)} ${r2(y)}`;
+     const level=quantize(avg/count,levels);
+     buckets[level].push(d);
+     d='';on=false;avg=0;count=0;
+    }
     continue;
    }
-   const len=inkLength(g[y*w+x],stroke,black);
-   if(len>0){if(!on){d+=`M ${x} ${y}`;on=true}else d+=` L ${x} ${y}`}
-   else if(on){d+=` L ${x} ${y}`;on=false}
+   const luma=sampleBilinear(g,w,h,x,y);
+   const ink=inkAmount(luma,gamma);
+   if(ink>0.04){
+    if(!on){d=`M ${r2(x)} ${r2(y)}`;on=true}
+    else d+=` L ${r2(x)} ${r2(y)}`;
+    avg+=ink;count++;
+   }else if(on){
+    d+=` L ${r2(x)} ${r2(y)}`;
+    const level=quantize(avg/count,levels);
+    buckets[level].push(d);
+    d='';on=false;avg=0;count=0;
+   }
   }
-  if(d)paths.push(d);
+  if(on){
+   d+=` L ${r2(w)} ${r2(h)}`;
+   const level=quantize(avg/count,levels);
+   buckets[level].push(d);
+  }
  }
- return paths;
+
+ buckets.forEach((segmentGroup,level)=>{
+  const weight=strokeWidth*(0.35+level/(levels-1));
+  segmentGroup.forEach(d=>elements.push({d,weight}));
+ });
+
+ return elements;
 }
 
-function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function quantize(value,levels){
+ return Math.max(0,Math.min(levels-1,Math.floor(value*levels)));
+}
+
+function r2(v){return Math.round(v*100)/100}
 </script>
 </body>
 </html>
