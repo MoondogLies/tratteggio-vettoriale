@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Immagine → Stampa da giornale · SVG vettoriale</title>
+<title>Stampa da giornale · CMYK fuori registro · SVG</title>
 <style>
 :root{color-scheme:dark}
 *{box-sizing:border-box}
@@ -18,7 +18,7 @@ button{background:#2f6fed;border:0;color:#fff;padding:10px 14px;border-radius:9p
 button.secondary{background:#33333d}
 button:disabled{opacity:.45;cursor:not-allowed}
 .views{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
-.box{background:#f4f1e6;border:1px solid #2b2b34;border-radius:10px;min-height:400px;display:grid;place-items:center;overflow:hidden;padding:8px}
+.box{background:#f4f1e6;border:1px solid #2b2b34;border-radius:10px;min-height:420px;display:grid;place-items:center;overflow:hidden;padding:8px}
 canvas,svg{max-width:100%;max-height:70vh;display:block}
 .actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
 .status{margin-top:12px;color:#9d9daa;font-size:13px}
@@ -27,27 +27,19 @@ textarea{width:100%;height:150px;margin-top:14px;background:#0c0c10;color:#d8d8e
 </head>
 <body>
 <div class="panel">
-<h1>Immagine → Stampa da giornale · SVG vettoriale</h1>
+<h1>Stampa da giornale · CMYK fuori registro · SVG</h1>
 
 <div class="row">
 <div><label>Immagine</label><input type="file" id="file" accept="image/*"></div>
 
 <div><label>Stile</label>
 <select id="style">
-<option value="halftone">Halftone punti · quotidiano</option>
-<option value="lines">Linee di stampa</option>
-<option value="cross">Tratteggio incrociato</option>
+<option value="cmyk">CMYK fuori registro</option>
+<option value="mono">Halftone bianco/nero</option>
 </select></div>
 
 <div><label>Risoluzione: <span id="spacingValue">4</span> px</label>
-<input type="range" id="spacing" min="2" max="16" value="4"></div>
-
-<div><label>Angolo reticolo</label>
-<select id="angle">
-<option value="15">15°</option>
-<option value="45" selected>45°</option>
-<option value="75">75°</option>
-</select></div>
+<input type="range" id="spacing" min="3" max="14" value="4"></div>
 
 <div><label>Sfocatura: <span id="blurValue">1.5</span></label>
 <input type="range" id="blur" min="0" max="6" step="0.5" value="1.5"></div>
@@ -55,11 +47,14 @@ textarea{width:100%;height:150px;margin-top:14px;background:#0c0c10;color:#d8d8e
 <div><label>Contrasto: <span id="contrastValue">30</span></label>
 <input type="range" id="contrast" min="-50" max="150" value="30"></div>
 
-<div><label>Gamma: <span id="gammaValue">1.25</span></label>
-<input type="range" id="gamma" min="0.5" max="3" step="0.05" value="1.25"></div>
+<div><label>Gamma: <span id="gammaValue">1.2</span></label>
+<input type="range" id="gamma" min="0.5" max="3" step="0.05" value="1.2"></div>
 
-<div><label>Spessore inchiostro</label>
-<input type="number" id="stroke" value="0.7" min="0.1" step="0.1" style="width:80px"></div>
+<div><label>Fuori registro: <span id="offsetValue">1.2</span> px</label>
+<input type="range" id="offset" min="0" max="6" step="0.1" value="1.2"></div>
+
+<div><label>Rumore registro: <span id="jitterValue">0.5</span> px</label>
+<input type="range" id="jitter" min="0" max="3" step="0.1" value="0.5"></div>
 
 <button id="convert">Converti</button>
 </div>
@@ -81,8 +76,8 @@ textarea{width:100%;height:150px;margin-top:14px;background:#0c0c10;color:#d8d8e
 <script>
 const $=id=>document.getElementById(id);
 const fileInput=$('file'), styleInput=$('style'), spacingInput=$('spacing'),
-angleInput=$('angle'), blurInput=$('blur'), contrastInput=$('contrast'),
-gammaInput=$('gamma'), strokeInput=$('stroke'), convertButton=$('convert'),
+blurInput=$('blur'), contrastInput=$('contrast'), gammaInput=$('gamma'),
+offsetInput=$('offset'), jitterInput=$('jitter'), convertButton=$('convert'),
 downloadButton=$('download'), copyButton=$('copy'), statusEl=$('status'),
 preview=$('preview'), svgBox=$('svgBox'), output=$('output');
 
@@ -93,13 +88,14 @@ function refreshLabels(){
  $('blurValue').textContent=blurInput.value;
  $('contrastValue').textContent=contrastInput.value;
  $('gammaValue').textContent=gammaInput.value;
+ $('offsetValue').textContent=offsetInput.value;
+ $('jitterValue').textContent=jitterInput.value;
 }
 refreshLabels();
 
-spacingInput.oninput=refreshLabels;
-blurInput.oninput=refreshLabels;
-contrastInput.oninput=refreshLabels;
-gammaInput.oninput=refreshLabels;
+['spacing','blur','contrast','gamma','offset','jitter'].forEach(id=>{
+ $(id).oninput=refreshLabels;
+});
 
 fileInput.onchange=()=>{
  const file=fileInput.files[0];
@@ -112,7 +108,7 @@ fileInput.onchange=()=>{
 };
 
 function drawPreview(img){
- const max=1200, scale=Math.min(1,max/Math.max(img.width,img.height));
+ const max=1100, scale=Math.min(1,max/Math.max(img.width,img.height));
  const w=Math.max(1,Math.round(img.width*scale)), h=Math.max(1,Math.round(img.height*scale));
  preview.width=w;preview.height=h;
  preview.style.width='auto';preview.style.height='auto';
@@ -121,25 +117,25 @@ function drawPreview(img){
 
 convertButton.onclick=()=>{
  if(!image){statusEl.textContent='Carica prima un’immagine.';return}
- statusEl.textContent='Generazione stampa…';
+ statusEl.textContent='Generazione separazioni…';
  convertButton.disabled=true;
  setTimeout(()=>{
   try{
-   const r=newspaper(
+   const r=makePrint(
     image,
     styleInput.value,
     +spacingInput.value,
-    +angleInput.value,
     +blurInput.value,
     +contrastInput.value,
     +gammaInput.value,
-    +strokeInput.value
+    +offsetInput.value,
+    +jitterInput.value
    );
    svgBox.innerHTML=r.svg;
    output.value=r.pathData.join('\n');
    svg=r.svg;
    downloadButton.disabled=false;copyButton.disabled=false;
-   statusEl.textContent=`${r.count} elementi vettoriali generati.`;
+   statusEl.textContent=`${r.count} punti vettoriali generati.`;
   }catch(e){console.error(e);statusEl.textContent='Errore: '+e.message}
   finally{convertButton.disabled=false}
  },30);
@@ -148,7 +144,7 @@ convertButton.onclick=()=>{
 downloadButton.onclick=()=>{
  const blob=new Blob([svg],{type:'image/svg+xml'});
  const a=document.createElement('a');
- a.href=URL.createObjectURL(blob);a.download='stampa-giornale.svg';a.click();
+ a.href=URL.createObjectURL(blob);a.download='stampa-giornale-cmyk.svg';a.click();
  URL.revokeObjectURL(a.href);
 };
 
@@ -157,57 +153,96 @@ copyButton.onclick=async()=>{
  statusEl.textContent='Path SVG copiati negli appunti.';
 };
 
-function newspaper(img,style,spacing,angle,blur,contrast,gamma,strokeWidth){
- const max=1200, scale=Math.min(1,max/Math.max(img.width,img.height));
+function makePrint(img,style,spacing,blur,contrast,gamma,offset,jitter){
+ const max=1100, scale=Math.min(1,max/Math.max(img.width,img.height));
  const w=Math.max(1,Math.round(img.width*scale)), h=Math.max(1,Math.round(img.height*scale));
  const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
  const ctx=canvas.getContext('2d',{willReadFrequently:true});
  ctx.drawImage(img,0,0,w,h);
- let gray=grayscale(ctx.getImageData(0,0,w,h).data,w,h);
+ const rgb=ctx.getImageData(0,0,w,h).data;
+
+ let gray=grayscale(rgb,w,h);
  if(blur>0)gray=blurBox(gray,w,h,blur);
  gray=contrastAdjust(gray,contrast);
 
- let elements=[];
- if(style==='halftone'){
-  elements=halftoneDots(gray,w,h,spacing,angle,gamma)
-   .map(d=>({d,weight:0}));
- }else if(style==='lines'){
-  elements=printLines(gray,w,h,spacing,angle,gamma,strokeWidth);
+ const channels=[];
+
+ if(style==='mono'){
+  channels.push({
+   name:'K', color:'#1a1a1a', angle:45,
+   dx:0, dy:0,
+   field:gray
+  });
  }else{
-  elements=[
-   ...printLines(gray,w,h,spacing,angle,gamma,strokeWidth),
-   ...printLines(gray,w,h,spacing,angle+90,gamma,strokeWidth*0.7)
-  ];
+  const cmyk=rgbToCmyk(rgb,w,h);
+  const baseAngles={C:15,M:75,Y:0,K:45};
+  const baseOffsets={
+   C:[offset,0],
+   M:[0,offset],
+   Y:[-offset*0.8,-offset*0.8],
+   K:[0,0]
+  };
+  const colors={C:'#00AEEF',M:'#EC008C',Y:'#FFDE17',K:'#1a1a1a'};
+
+  for(const key of ['C','M','Y','K']){
+   let field=cmyk[key];
+   if(blur>0)field=blurBox(field,w,h,blur);
+   field=contrastAdjust(field,contrast);
+
+   const jx=(Math.random()-0.5)*2*jitter;
+   const jy=(Math.random()-0.5)*2*jitter;
+
+   channels.push({
+    name:key,
+    color:colors[key],
+    angle:baseAngles[key],
+    dx:baseOffsets[key][0]+jx,
+    dy:baseOffsets[key][1]+jy,
+    field
+   });
+  }
  }
 
- const dotPaths=elements.filter(e=>e.weight===0).map(e=>e.d);
- const lineGroups=groupByWeight(elements.filter(e=>e.weight>0));
+ const groups=channels.map(ch=>{
+  const dots=halftone(ch.field,w,h,spacing,ch.angle,gamma,ch.dx,ch.dy);
+  return {
+   color:ch.color,
+   paths:dots
+  };
+ });
 
- const lineMarkup=lineGroups.map(group=>
-  `  <g fill="none" stroke="#151515" stroke-width="${group.weight}" stroke-linecap="round" stroke-linejoin="round">\n${group.paths.map(d=>`    <path d="${d}"/>`).join('\n')}\n  </g>`
+ const groupMarkup=groups.map(group=>
+  `  <g style="mix-blend-mode:multiply" fill="${group.color}">\n${group.paths.map(d=>`    <path d="${d}"/>`).join('\n')}\n  </g>`
  ).join('\n');
 
  const svgText=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
 <rect width="100%" height="100%" fill="#f7f3e8"/>
-<g fill="#151515" stroke="none">\n${dotPaths.map(d=>`  <path d="${d}"/>`).join('\n')}\n</g>
-${lineMarkup}
+${groupMarkup}
 </svg>`;
 
  return{
   svg:svgText,
-  pathData:elements.map(e=>e.d),
-  count:elements.length
+  pathData:groups.flatMap(g=>g.paths),
+  count:groups.reduce((n,g)=>n+g.paths.length,0)
  };
 }
 
-function groupByWeight(elements){
- const groups=new Map();
- for(const e of elements){
-  const key=e.weight.toFixed(3);
-  if(!groups.has(key))groups.set(key,{weight:e.weight,paths:[]});
-  groups.get(key).paths.push(e.d);
+function rgbToCmyk(data,w,h){
+ const C=new Float32Array(w*h), M=new Float32Array(w*h),
+ Y=new Float32Array(w*h), K=new Float32Array(w*h);
+
+ for(let i=0,p=0;i<data.length;i+=4,p++){
+  const r=data[i]/255, g=data[i+1]/255, b=data[i+2]/255;
+  const k=1-Math.max(r,g,b);
+  const denom=1-k;
+
+  K[p]=k;
+  C[p]=denom>0.001?(1-r-k)/denom:0;
+  M[p]=denom>0.001?(1-g-k)/denom:0;
+  Y[p]=denom>0.001?(1-b-k)/denom:0;
  }
- return [...groups.values()].sort((a,b)=>a.weight-b.weight);
+
+ return{C,M,Y,K};
 }
 
 function grayscale(data,w,h){
@@ -236,7 +271,7 @@ function blurBox(input,w,h,radius){
 function contrastAdjust(gray,amount){
  const f=1+amount/100, out=new Float32Array(gray.length);
  for(let i=0;i<gray.length;i++)
-  out[i]=Math.max(0,Math.min(255,(gray[i]-128)*f+128));
+  out[i]=Math.max(0,Math.min(1,(gray[i]-0.5)*f+0.5));
  return out;
 }
 
@@ -250,13 +285,7 @@ function sampleBilinear(g,w,h,x,y){
  return a*(1-fx)*(1-fy)+b*fx*(1-fy)+c*(1-fx)*fy+d*fx*fy;
 }
 
-function inkAmount(luma,gamma){
- let darkness=1-luma/255;
- darkness=Math.pow(darkness,gamma);
- return Math.max(0,Math.min(1,darkness));
-}
-
-function halftoneDots(g,w,h,spacing,angleDeg,gamma){
+function halftone(field,w,h,spacing,angleDeg,gamma,dx,dy){
  const paths=[];
  const rad=angleDeg*Math.PI/180;
  const cos=Math.cos(rad), sin=Math.sin(rad);
@@ -266,13 +295,13 @@ function halftoneDots(g,w,h,spacing,angleDeg,gamma){
  for(let row=-extent;row<=extent;row++){
   for(let col=-extent;col<=extent;col++){
    const u=col*spacing, v=row*spacing;
-   const x=u*cos-v*sin;
-   const y=u*sin+v*cos;
+   const x=u*cos-v*sin+dx;
+   const y=u*sin+v*cos+dy;
    if(x<-spacing||x>w+spacing||y<-spacing||y>h+spacing)continue;
-   const luma=sampleBilinear(g,w,h,x,y);
-   const ink=inkAmount(luma,gamma);
-   if(ink<0.015)continue;
-   const r=half*Math.sqrt(ink);
+   const value=sampleBilinear(field,w,h,x,y);
+   const ink=Math.pow(Math.max(0,Math.min(1,value)),gamma);
+   if(ink<0.02)continue;
+   const r=half*Math.sqrt(ink)*1.08;
    if(r<0.18)continue;
    paths.push(circlePath(x,y,r));
   }
@@ -284,60 +313,6 @@ function circlePath(cx,cy,r){
  return `M ${r2(cx-r)} ${r2(cy)} `+
   `a ${r2(r)} ${r2(r)} 0 1 0 ${r2(2*r)} 0 `+
   `a ${r2(r)} ${r2(r)} 0 1 0 ${r2(-2*r)} 0 Z`;
-}
-
-function printLines(g,w,h,spacing,angleDeg,gamma,strokeWidth){
- const elements=[];
- const rad=angleDeg*Math.PI/180;
- const cos=Math.cos(rad), sin=Math.sin(rad);
- const extent=Math.ceil((w+h)/spacing)+4;
- const levels=6;
- const buckets=Array.from({length:levels},()=>[]);
-
- for(let row=-extent;row<=extent;row++){
-  let d='',on=false,avg=0,count=0;
-  for(let col=-extent;col<=extent;col++){
-   const u=col*spacing, v=row*spacing;
-   const x=u*cos-v*sin, y=u*sin+v*cos;
-   if(x<-spacing||x>w+spacing||y<-spacing||y>h+spacing){
-    if(on){
-     d+=` L ${r2(x)} ${r2(y)}`;
-     const level=quantize(avg/count,levels);
-     buckets[level].push(d);
-     d='';on=false;avg=0;count=0;
-    }
-    continue;
-   }
-   const luma=sampleBilinear(g,w,h,x,y);
-   const ink=inkAmount(luma,gamma);
-   if(ink>0.04){
-    if(!on){d=`M ${r2(x)} ${r2(y)}`;on=true}
-    else d+=` L ${r2(x)} ${r2(y)}`;
-    avg+=ink;count++;
-   }else if(on){
-    d+=` L ${r2(x)} ${r2(y)}`;
-    const level=quantize(avg/count,levels);
-    buckets[level].push(d);
-    d='';on=false;avg=0;count=0;
-   }
-  }
-  if(on){
-   d+=` L ${r2(w)} ${r2(h)}`;
-   const level=quantize(avg/count,levels);
-   buckets[level].push(d);
-  }
- }
-
- buckets.forEach((segmentGroup,level)=>{
-  const weight=strokeWidth*(0.35+level/(levels-1));
-  segmentGroup.forEach(d=>elements.push({d,weight}));
- });
-
- return elements;
-}
-
-function quantize(value,levels){
- return Math.max(0,Math.min(levels-1,Math.floor(value*levels)));
 }
 
 function r2(v){return Math.round(v*100)/100}
