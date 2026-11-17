@@ -62,7 +62,7 @@ textarea{width:100%;height:110px;margin-top:10px;background:#0c0c10;color:#d8d8e
 <select id="style">
 <option value="cmyk">CMYK fuori registro</option>
 <option value="mono">Halftone bianco/nero</option>
-<option value="plotter">Pen plotter · contorni</option>
+<option value="squiggle">Pen plotter · linee continue</option>
 </select></div>
 
 <div><label>Risoluzione: <span id="spacingValue">4</span> px</label>
@@ -71,8 +71,8 @@ textarea{width:100%;height:110px;margin-top:10px;background:#0c0c10;color:#d8d8e
 <div><label>Sfocatura: <span id="blurValue">1.5</span></label>
 <input type="range" id="blur" min="0" max="6" step="0.5" value="1.5"></div>
 
-<div><label>Soglia bordi: <span id="thresholdValue">28</span></label>
-<input type="range" id="threshold" min="5" max="120" value="28"></div>
+<div><label>Ampiezza squiggle: <span id="ampValue">6</span> px</label>
+<input type="range" id="amp" min="1" max="20" value="6"></div>
 
 <div><label>Contrasto: <span id="contrastValue">30</span></label>
 <input type="range" id="contrast" min="-50" max="150" value="30"></div>
@@ -104,7 +104,7 @@ textarea{width:100%;height:110px;margin-top:10px;background:#0c0c10;color:#d8d8e
 <script>
 const $=id=>document.getElementById(id);
 const fileInput=$('file'), styleInput=$('style'), spacingInput=$('spacing'),
-blurInput=$('blur'), thresholdInput=$('threshold'), contrastInput=$('contrast'),
+blurInput=$('blur'), ampInput=$('amp'), contrastInput=$('contrast'),
 gammaInput=$('gamma'), inkVarInput=$('inkVar'), offsetInput=$('offset'),
 jitterInput=$('jitter'), convertButton=$('convert'), downloadButton=$('download'),
 copyButton=$('copy'), statusEl=$('status'), preview=$('preview'),
@@ -121,7 +121,7 @@ toggleControls.onclick=()=>{
 function refreshLabels(){
  $('spacingValue').textContent=spacingInput.value;
  $('blurValue').textContent=blurInput.value;
- $('thresholdValue').textContent=thresholdInput.value;
+ $('ampValue').textContent=ampInput.value;
  $('contrastValue').textContent=contrastInput.value;
  $('gammaValue').textContent=gammaInput.value;
  $('inkVarValue').textContent=inkVarInput.value;
@@ -130,7 +130,7 @@ function refreshLabels(){
 }
 refreshLabels();
 
-['spacing','blur','threshold','contrast','gamma','inkVar','offset','jitter'].forEach(id=>{
+['spacing','blur','amp','contrast','gamma','inkVar','offset','jitter'].forEach(id=>{
  $(id).oninput=refreshLabels;
 });
 
@@ -163,7 +163,7 @@ convertButton.onclick=()=>{
     styleInput.value,
     +spacingInput.value,
     +blurInput.value,
-    +thresholdInput.value,
+    +ampInput.value,
     +contrastInput.value,
     +gammaInput.value,
     +inkVarInput.value/100,
@@ -192,7 +192,7 @@ copyButton.onclick=async()=>{
  statusEl.textContent='Path SVG copiati negli appunti.';
 };
 
-function makePrint(img,style,spacing,blur,threshold,contrast,gamma,inkVariability,offset,jitter){
+function makePrint(img,style,spacing,blur,amplitude,contrast,gamma,inkVariability,offset,jitter){
  const max=1100, scale=Math.min(1,max/Math.max(img.width,img.height));
  const w=Math.max(1,Math.round(img.width*scale)), h=Math.max(1,Math.round(img.height*scale));
  const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
@@ -200,19 +200,16 @@ function makePrint(img,style,spacing,blur,threshold,contrast,gamma,inkVariabilit
  ctx.drawImage(img,0,0,w,h);
  const rgb=ctx.getImageData(0,0,w,h).data;
 
- if(style==='plotter'){
+ if(style==='squiggle'){
   let gray=grayscale(rgb,w,h);
+  gray=normalize01(gray);
   if(blur>0)gray=blurBox(gray,w,h,blur);
-  gray=contrastAdjust255(gray,contrast);
-  const edges=sobelEdges(gray,w,h,threshold);
-  const contours=traceContours(edges,w,h);
-  const simplified=contours.map(points=>ramerDouglasPeucker(points,1.1))
-   .filter(points=>points.length>=2);
-  const paths=simplified.map(pointsToPath);
+  gray=contrastAdjust(gray,contrast);
+  const paths=squiggleLines(gray,w,h,spacing,amplitude,gamma);
 
   const svgText=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
 <rect width="100%" height="100%" fill="#f7f3e8"/>
-<g fill="none" stroke="#111" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round">
+<g fill="none" stroke="#111" stroke-width="0.7" stroke-linecap="round" stroke-linejoin="round">
 ${paths.map(d=>`  <path d="${d}"/>`).join('\n')}
 </g>
 </svg>`;
@@ -303,179 +300,33 @@ ${groupMarkup}
  };
 }
 
-function sobelEdges(gray,width,height,threshold){
- const mask=new Uint8Array(width*height);
+function squiggleLines(field,w,h,spacing,amplitude,gamma){
+ const paths=[];
 
- for(let y=1;y<height-1;y++){
-  for(let x=1;x<width-1;x++){
-   const i=y*width+x;
-   const tl=gray[i-width-1], tc=gray[i-width], tr=gray[i-width+1];
-   const ml=gray[i-1], mr=gray[i+1];
-   const bl=gray[i+width-1], bc=gray[i+width], br=gray[i+width+1];
+ for(let rowY=0;rowY<h;rowY+=spacing){
+  let phase=0;
+  let d='';
 
-   const gx=-tl-2*ml-bl+tr+2*mr+br;
-   const gy=-tl-2*tc-tr+bl+2*bc+br;
-   const magnitude=Math.sqrt(gx*gx+gy*gy);
-   mask[i]=magnitude>=threshold?1:0;
-  }
- }
+  for(let x=0;x<w;x++){
+   const luma=sampleBilinear(field,w,h,x,rowY);
+   const darkness=Math.pow(Math.max(0,Math.min(1,1-luma)),gamma);
 
- return mask;
-}
-
-function traceContours(mask,width,height){
- const field=new Float32Array((width+1)*(height+1));
-
- for(let y=0;y<=height;y++){
-  for(let x=0;x<=width;x++){
-   const mx=Math.min(width-1,x), my=Math.min(height-1,y);
-   field[y*(width+1)+x]=mask[my*width+mx];
-  }
- }
-
- const segments=[];
- const level=0.5;
-
- for(let y=0;y<height;y++){
-  for(let x=0;x<width;x++){
-   const tl=field[y*(width+1)+x];
-   const tr=field[y*(width+1)+x+1];
-   const br=field[(y+1)*(width+1)+x+1];
-   const bl=field[(y+1)*(width+1)+x];
-
-   const code=(tl>=level?8:0)|(tr>=level?4:0)|(br>=level?2:0)|(bl>=level?1:0);
-   if(code===0||code===15)continue;
-
-   const top=interp(tl,tr,level,x,y,x+1,y);
-   const right=interp(tr,br,level,x+1,y,x+1,y+1);
-   const bottom=interp(bl,br,level,x,y+1,x+1,y+1);
-   const left=interp(tl,bl,level,x,y,x,y+1);
-
-   switch(code){
-    case 1: case 14: segments.push([left,bottom]); break;
-    case 2: case 13: segments.push([bottom,right]); break;
-    case 3: case 12: segments.push([left,right]); break;
-    case 4: case 11: segments.push([top,right]); break;
-    case 5: segments.push([left,top],[bottom,right]); break;
-    case 6: case 9: segments.push([top,bottom]); break;
-    case 7: case 8: segments.push([left,top]); break;
-    case 10: segments.push([left,bottom],[top,right]); break;
+   if(darkness>0.03){
+    phase+=darkness*0.55;
+    const y=rowY+Math.sin(phase)*amplitude*darkness;
+    if(!d)d=`M ${r2(x)} ${r2(y)}`;
+    else d+=` L ${r2(x)} ${r2(y)}`;
+   }else{
+    phase*=0.92;
+    const y=rowY;
+    if(d)d+=` L ${r2(x)} ${r2(y)}`;
    }
   }
+
+  if(d)paths.push(d);
  }
 
- return stitchSegments(segments);
-}
-
-function interp(a,b,level,x1,y1,x2,y2){
- if(b===a)return{x:(x1+x2)/2,y:(y1+y2)/2};
- const t=(level-a)/(b-a);
- return{x:x1+(x2-x1)*t,y:y1+(y2-y1)*t};
-}
-
-function stitchSegments(segments){
- const key=p=>`${p.x.toFixed(4)},${p.y.toFixed(4)}`;
- const adjacency=new Map();
-
- const addEdge=(a,b)=>{
-  const ka=key(a), kb=key(b);
-  if(!adjacency.has(ka))adjacency.set(ka,[]);
-  if(!adjacency.has(kb))adjacency.set(kb,[]);
-  adjacency.get(ka).push(b);
-  adjacency.get(kb).push(a);
- };
-
- segments.forEach(([a,b])=>addEdge(a,b));
-
- const visited=new Set();
- const contours=[];
-
- for(const [startKey,neighbors] of adjacency){
-  if(visited.has(startKey)||neighbors.length!==1)continue;
-  const contour=[];
-  let currentKey=startKey, previousKey=null;
-
-  while(!visited.has(currentKey)){
-   visited.add(currentKey);
-   const [x,y]=currentKey.split(',').map(Number);
-   contour.push({x,y});
-   const candidates=adjacency.get(currentKey).map(key).filter(k=>k!==previousKey);
-   if(!candidates.length)break;
-   previousKey=currentKey;
-   currentKey=candidates[0];
-  }
-
-  if(contour.length>=2)contours.push(contour);
- }
-
- for(const [startKey] of adjacency){
-  if(visited.has(startKey))continue;
-  const contour=[];
-  let currentKey=startKey, previousKey=null;
-
-  while(!visited.has(currentKey)){
-   visited.add(currentKey);
-   const [x,y]=currentKey.split(',').map(Number);
-   contour.push({x,y});
-   const candidates=adjacency.get(currentKey).map(key).filter(k=>k!==previousKey);
-   if(!candidates.length)break;
-   previousKey=currentKey;
-   currentKey=candidates[0];
-  }
-
-  if(contour.length>=3)contours.push(contour);
- }
-
- return contours;
-}
-
-function ramerDouglasPeucker(points,tolerance){
- if(points.length<=2||tolerance<=0)return points;
- const keep=new Array(points.length).fill(false);
- keep[0]=true;keep[points.length-1]=true;
- const stack=[[0,points.length-1]];
-
- while(stack.length){
-  const [start,end]=stack.pop();
-  if(end<=start+1)continue;
-  let maxDistance=0,index=start;
-  const a=points[start], b=points[end];
-
-  for(let i=start+1;i<end;i++){
-   const distance=pointToSegmentDistance(points[i],a,b);
-   if(distance>maxDistance){maxDistance=distance;index=i}
-  }
-
-  if(maxDistance>tolerance){
-   keep[index]=true;
-   stack.push([start,index],[index,end]);
-  }
- }
-
- return points.filter((_,i)=>keep[i]);
-}
-
-function pointToSegmentDistance(p,a,b){
- const dx=b.x-a.x, dy=b.y-a.y;
- if(dx===0&&dy===0)return Math.hypot(p.x-a.x,p.y-a.y);
- const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/(dx*dx+dy*dy)));
- const cx=a.x+dx*t, cy=a.y+dy*t;
- return Math.hypot(p.x-cx,p.y-cy);
-}
-
-function pointsToPath(points){
- let d=`M ${r2(points[0].x)} ${r2(points[0].y)}`;
- for(let i=1;i<points.length;i++)d+=` L ${r2(points[i].x)} ${r2(points[i].y)}`;
- const first=points[0], last=points[points.length-1];
- if(points.length>2&&Math.hypot(first.x-last.x,first.y-last.y)<1.2)d+=' Z';
- return d;
-}
-
-function contrastAdjust255(gray,amount){
- const f=1+amount/100, out=new Float32Array(gray.length);
- for(let i=0;i<gray.length;i++)
-  out[i]=Math.max(0,Math.min(255,(gray[i]-128)*f+128));
- return out;
+ return paths;
 }
 
 function normalize01(gray){
