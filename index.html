@@ -2,32 +2,58 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Stampa da giornale · CMYK fuori registro · SVG</title>
 <style>
 :root{color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;padding:24px;background:#101014;color:#e8e8ee;font:15px/1.5 system-ui,sans-serif}
-h1{font-size:22px;margin:0 0 18px}
-.panel{background:#17171d;border:1px solid #2b2b34;border-radius:14px;padding:18px;max-width:1250px;margin:auto}
-.row{display:flex;gap:16px;flex-wrap:wrap;align-items:end}
-label{display:block;font-size:12px;color:#a8a8b4;margin-bottom:5px}
-input[type=range]{width:150px}
-select,input[type=number],input[type=file]{background:#0c0c10;color:#e8e8ee;border:1px solid #33333d;border-radius:8px;padding:8px}
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:#101014;color:#e8e8ee;font:15px/1.45 system-ui,sans-serif}
+
+.stage{display:flex;height:100dvh;width:100%}
+.pane{flex:1 1 50%;position:relative;display:grid;place-items:center;background:#f4f1e6;overflow:hidden}
+.pane canvas,.pane svg{max-width:100%;max-height:100%;width:auto;height:auto;display:block}
+.tag{position:absolute;top:10px;left:10px;background:rgba(15,15,20,.72);color:#fff;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:4px 8px;border-radius:6px;pointer-events:none}
+
+#toggleControls{position:fixed;bottom:calc(14px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:30;background:#2f6fed;color:#fff;border:0;border-radius:999px;padding:12px 20px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+
+.controls{position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(20,20,26,.96);backdrop-filter:blur(14px);border-top:1px solid #33333d;padding:16px 16px calc(18px + env(safe-area-inset-bottom));transform:translateY(110%);transition:transform .28s ease;max-height:78dvh;overflow:auto}
+.controls.open{transform:translateY(0)}
+.controls h2{margin:0 0 12px;font-size:16px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 16px;align-items:end}
+label{display:block;font-size:11px;color:#a8a8b4;margin-bottom:5px}
+input[type=range]{width:100%}
+select,input[type=number],input[type=file]{width:100%;background:#0c0c10;color:#e8e8ee;border:1px solid #33333d;border-radius:8px;padding:8px}
+.actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
 button{background:#2f6fed;border:0;color:#fff;padding:10px 14px;border-radius:9px;font-weight:600;cursor:pointer}
 button.secondary{background:#33333d}
 button:disabled{opacity:.45;cursor:not-allowed}
-.views{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
-.box{background:#f4f1e6;border:1px solid #2b2b34;border-radius:10px;min-height:420px;display:grid;place-items:center;overflow:hidden;padding:8px}
-canvas,svg{max-width:100%;max-height:70vh;display:block}
-.actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
-.status{margin-top:12px;color:#9d9daa;font-size:13px}
-textarea{width:100%;height:150px;margin-top:14px;background:#0c0c10;color:#d8d8e2;border:1px solid #2b2b34;border-radius:8px;font:12px/1.45 ui-monospace,monospace;padding:10px;resize:vertical}
+.status{margin-top:10px;color:#9d9daa;font-size:12px}
+textarea{width:100%;height:110px;margin-top:10px;background:#0c0c10;color:#d8d8e2;border:1px solid #2b2b34;border-radius:8px;font:11px/1.4 ui-monospace,monospace;padding:8px;resize:vertical}
+
+@media (max-width:640px){
+ .stage{flex-direction:row}
+ .pane{min-width:0}
+ .tag{font-size:9px;padding:3px 6px}
+}
 </style>
 </head>
 <body>
-<div class="panel">
-<h1>Stampa da giornale · CMYK fuori registro · SVG</h1>
+<div class="stage">
+<div class="pane">
+<canvas id="preview"></canvas>
+<span class="tag">Originale</span>
+</div>
+<div class="pane">
+<div id="svgBox"></div>
+<span class="tag">Stampa</span>
+</div>
+</div>
+
+<button id="toggleControls">Controlli</button>
+
+<div class="controls" id="controlsPanel">
+<h2>Impostazioni stampa</h2>
 
 <div class="row">
 <div><label>Immagine</label><input type="file" id="file" accept="image/*"></div>
@@ -59,12 +85,7 @@ textarea{width:100%;height:150px;margin-top:14px;background:#0c0c10;color:#d8d8e
 <div><label>Rumore registro: <span id="jitterValue">0.5</span> px</label>
 <input type="range" id="jitter" min="0" max="3" step="0.1" value="0.5"></div>
 
-<button id="convert">Converti</button>
-</div>
-
-<div class="views">
-<div class="box"><canvas id="preview"></canvas></div>
-<div class="box"><div id="svgBox"></div></div>
+<div><button id="convert">Converti</button></div>
 </div>
 
 <div class="actions">
@@ -82,9 +103,15 @@ const fileInput=$('file'), styleInput=$('style'), spacingInput=$('spacing'),
 blurInput=$('blur'), contrastInput=$('contrast'), gammaInput=$('gamma'),
 inkVarInput=$('inkVar'), offsetInput=$('offset'), jitterInput=$('jitter'),
 convertButton=$('convert'), downloadButton=$('download'), copyButton=$('copy'),
-statusEl=$('status'), preview=$('preview'), svgBox=$('svgBox'), output=$('output');
+statusEl=$('status'), preview=$('preview'), svgBox=$('svgBox'), output=$('output'),
+controlsPanel=$('controlsPanel'), toggleControls=$('toggleControls');
 
 let image=null, svg='';
+
+toggleControls.onclick=()=>{
+ controlsPanel.classList.toggle('open');
+ toggleControls.textContent=controlsPanel.classList.contains('open')?'Chiudi':'Controlli';
+};
 
 function refreshLabels(){
  $('spacingValue').textContent=spacingInput.value;
