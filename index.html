@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Immagine → Tratteggio vettoriale SVG</title>
+<style>
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;padding:24px;background:#101014;color:#e8e8ee;font:15px/1.5 system-ui,sans-serif}
+h1{font-size:22px;margin:0 0 18px}
+.panel{background:#17171d;border:1px solid #2b2b34;border-radius:14px;padding:18px;max-width:1250px;margin:auto}
+.row{display:flex;gap:16px;flex-wrap:wrap;align-items:end}
+label{display:block;font-size:12px;color:#a8a8b4;margin-bottom:5px}
+input[type=range]{width:150px}
+select,input[type=number],input[type=file]{background:#0c0c10;color:#e8e8ee;border:1px solid #33333d;border-radius:8px;padding:8px}
+button{background:#2f6fed;border:0;color:#fff;padding:10px 14px;border-radius:9px;font-weight:600;cursor:pointer}
+button.secondary{background:#33333d}
+button:disabled{opacity:.45;cursor:not-allowed}
+.views{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+.box{background:#0c0c10;border:1px solid #2b2b34;border-radius:10px;min-height:380px;display:grid;place-items:center;overflow:hidden;padding:8px}
+canvas,svg{max-width:100%;max-height:70vh;display:block}
+.actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.status{margin-top:12px;color:#9d9daa;font-size:13px}
+textarea{width:100%;height:150px;margin-top:14px;background:#0c0c10;color:#d8d8e2;border:1px solid #2b2b34;border-radius:8px;font:12px/1.45 ui-monospace,monospace;padding:10px;resize:vertical}
+</style>
+</head>
+<body>
+<div class="panel">
+<h1>Immagine → Tratteggio vettoriale SVG</h1>
+
+<div class="row">
+<div><label>Immagine</label><input type="file" id="file" accept="image/*"></div>
+
+<div><label>Stile</label>
+<select id="style">
+<option value="horizontal">Linee orizzontali</option>
+<option value="vertical">Linee verticali</option>
+<option value="diagonal45">Diagonali 45°</option>
+<option value="diagonal135">Diagonali 135°</option>
+<option value="cross">Incrocio 45° + 135°</option>
+</select></div>
+
+<div><label>Distanza linee: <span id="spacingValue">3</span> px</label>
+<input type="range" id="spacing" min="1" max="14" value="3"></div>
+
+<div><label>Sfocatura: <span id="blurValue">1</span></label>
+<input type="range" id="blur" min="0" max="6" step="0.5" value="1"></div>
+
+<div><label>Contrasto: <span id="contrastValue">25</span></label>
+<input type="range" id="contrast" min="-50" max="120" value="25"></div>
+
+<div><label>Soglia nero: <span id="blackValue">10</span>%</label>
+<input type="range" id="black" min="0" max="70" value="10"></div>
+
+<div><label>Spessore</label>
+<input type="number" id="stroke" value="0.8" min="0.1" step="0.1" style="width:80px"></div>
+
+<button id="convert">Converti</button>
+</div>
+
+<div class="views">
+<div class="box"><canvas id="preview"></canvas></div>
+<div class="box"><div id="svgBox"></div></div>
+</div>
+
+<div class="actions">
+<button id="download" class="secondary" disabled>Scarica SVG</button>
+<button id="copy" class="secondary" disabled>Copia path SVG</button>
+</div>
+
+<div class="status" id="status">Carica un’immagine per iniziare.</div>
+<textarea id="output" readonly placeholder="Qui compariranno i path SVG…"></textarea>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const fileInput=$('file'), styleInput=$('style'), spacingInput=$('spacing'),
+blurInput=$('blur'), contrastInput=$('contrast'), blackInput=$('black'),
+strokeInput=$('stroke'), convertButton=$('convert'), downloadButton=$('download'),
+copyButton=$('copy'), statusEl=$('status'), preview=$('preview'),
+svgBox=$('svgBox'), output=$('output');
+
+let image=null, svg='';
+
+$('spacingValue').textContent=spacingInput.value;
+$('blurValue').textContent=blurInput.value;
+$('contrastValue').textContent=contrastInput.value;
+$('blackValue').textContent=blackInput.value;
+
+spacingInput.oninput=()=>$('spacingValue').textContent=spacingInput.value;
+blurInput.oninput=()=>$('blurValue').textContent=blurInput.value;
+contrastInput.oninput=()=>$('contrastValue').textContent=contrastInput.value;
+blackInput.oninput=()=>$('blackValue').textContent=blackInput.value;
+
+fileInput.onchange=()=>{
+ const file=fileInput.files[0];
+ if(!file)return;
+ const url=URL.createObjectURL(file);
+ const img=new Image();
+ img.onload=()=>{image=img;drawPreview(img);statusEl.textContent='Immagine caricata. Premi Converti.';URL.revokeObjectURL(url)};
+ img.onerror=()=>{statusEl.textContent='File immagine non leggibile.';URL.revokeObjectURL(url)};
+ img.src=url;
+};
+
+function drawPreview(img){
+ const max=1200, scale=Math.min(1,max/Math.max(img.width,img.height));
+ const w=Math.max(1,Math.round(img.width*scale)), h=Math.max(1,Math.round(img.height*scale));
+ preview.width=w;preview.height=h;
+ preview.style.width='auto';preview.style.height='auto';
+ preview.getContext('2d',{willReadFrequently:true}).drawImage(img,0,0,w,h);
+}
+
+convertButton.onclick=()=>{
+ if(!image){statusEl.textContent='Carica prima un’immagine.';return}
+ statusEl.textContent='Generazione tratteggio…';
+ convertButton.disabled=true;
+ setTimeout(()=>{
+  try{
+   const r=engrave(
+    image,
+    styleInput.value,
+    +spacingInput.value,
+    +blurInput.value,
+    +contrastInput.value,
+    +blackInput.value/100,
+    +strokeInput.value
+   );
+   svgBox.innerHTML=r.svg;
+   output.value=r.paths.join('\n');
+   svg=r.svg;
+   downloadButton.disabled=false;copyButton.disabled=false;
+   statusEl.textContent=`${r.paths.length} tracciati vettoriali generati.`;
+  }catch(e){console.error(e);statusEl.textContent='Errore: '+e.message}
+  finally{convertButton.disabled=false}
+ },30);
+};
+
+downloadButton.onclick=()=>{
+ const blob=new Blob([svg],{type:'image/svg+xml'});
+ const a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);a.download='tratteggio-vettoriale.svg';a.click();
+ URL.revokeObjectURL(a.href);
+};
+
+copyButton.onclick=async()=>{
+ await navigator.clipboard.writeText(output.value);
+ statusEl.textContent='Path SVG copiati negli appunti.';
+};
+
+function engrave(img,style,spacing,blur,contrast,blackThreshold,strokeWidth){
+ const max=1200, scale=Math.min(1,max/Math.max(img.width,img.height));
+ const w=Math.max(1,Math.round(img.width*scale)), h=Math.max(1,Math.round(img.height*scale));
+ const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+ const ctx=canvas.getContext('2d',{willReadFrequently:true});
+ ctx.drawImage(img,0,0,w,h);
+ let gray=grayscale(ctx.getImageData(0,0,w,h).data,w,h);
+ if(blur>0)gray=blurBox(gray,w,h,blur);
+ gray=contrastAdjust(gray,contrast);
+
+ let paths=[];
+ if(style==='horizontal')paths=hLines(gray,w,h,spacing,strokeWidth,blackThreshold);
+ else if(style==='vertical')paths=vLines(gray,w,h,spacing,strokeWidth,blackThreshold);
+ else if(style==='diagonal45')paths=dLines(gray,w,h,spacing,strokeWidth,blackThreshold,1);
+ else if(style==='diagonal135')paths=dLines(gray,w,h,spacing,strokeWidth,blackThreshold,-1);
+ else{
+  paths=[...dLines(gray,w,h,spacing,strokeWidth,blackThreshold,1),
+         ...dLines(gray,w,h,spacing,strokeWidth,blackThreshold,-1)];
+ }
+
+ const svgText=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+<rect width="100%" height="100%" fill="#fff"/>
+<g fill="none" stroke="#000" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">
+${paths.map(d=>`<path d="${d}"/>`).join('\n')}
+</g>
+</svg>`;
+ return{svg:svgText,paths};
+}
+
+function grayscale(data,w,h){
+ const g=new Float32Array(w*h);
+ for(let i=0,p=0;i<data.length;i+=4,p++)
+  g[p]=.299*data[i]+.587*data[i+1]+.114*data[i+2];
+ return g;
+}
+
+function blurBox(input,w,h,radius){
+ const r=Math.max(1,Math.round(radius));
+ const tmp=new Float32Array(input.length), out=new Float32Array(input.length);
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+  let s=0,n=0;
+  for(let d=-r;d<=r;d++){const xx=x+d;if(xx>=0&&xx<w){s+=input[y*w+xx];n++}}
+  tmp[y*w+x]=s/n;
+ }
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+  let s=0,n=0;
+  for(let d=-r;d<=r;d++){const yy=y+d;if(yy>=0&&yy<h){s+=tmp[yy*w+x];n++}}
+  out[y*w+x]=s/n;
+ }
+ return out;
+}
+
+function contrastAdjust(gray,amount){
+ const f=1+amount/100, out=new Float32Array(gray.length);
+ for(let i=0;i<gray.length;i++)
+  out[i]=Math.max(0,Math.min(255,(gray[i]-128)*f+128));
+ return out;
+}
+
+function inkLength(luma,strokeWidth,blackThreshold){
+ const darkness=1-luma/255;
+ if(darkness<=blackThreshold)return 0;
+ return Math.min(1,(darkness-blackThreshold)/(1-blackThreshold))*strokeWidth*6;
+}
+
+function hLines(g,w,h,spacing,stroke,black){
+ const paths=[];
+ for(let y=0;y<h;y+=spacing){
+  let d='',on=false;
+  for(let x=0;x<w;x++){
+   const len=inkLength(g[y*w+x],stroke,black);
+   if(len>0){if(!on){d+=`M ${x} ${y}`;on=true}else d+=` L ${x} ${y}`}
+   else if(on){d+=` L ${x} ${y}`;on=false}
+  }
+  if(on)d+=` L ${w-1} ${y}`;
+  if(d)paths.push(d);
+ }
+ return paths;
+}
+
+function vLines(g,w,h,spacing,stroke,black){
+ const paths=[];
+ for(let x=0;x<w;x+=spacing){
+  let d='',on=false;
+  for(let y=0;y<h;y++){
+   const len=inkLength(g[y*w+x],stroke,black);
+   if(len>0){if(!on){d+=`M ${x} ${y}`;on=true}else d+=` L ${x} ${y}`}
+   else if(on){d+=` L ${x} ${y}`;on=false}
+  }
+  if(on)d+=` L ${x} ${h-1}`;
+  if(d)paths.push(d);
+ }
+ return paths;
+}
+
+function dLines(g,w,h,spacing,stroke,black,slope){
+ const paths=[];
+ const limit=w+h;
+ for(let offset=-h;offset<limit;offset+=spacing){
+  let d='',on=false;
+  for(let y=0;y<h;y++){
+   const x=slope===1?y+offset:offset-y;
+   if(x<0||x>=w){
+    if(on){d+=` L ${clamp(x,0,w-1)} ${y}`;on=false}
+    continue;
+   }
+   const len=inkLength(g[y*w+x],stroke,black);
+   if(len>0){if(!on){d+=`M ${x} ${y}`;on=true}else d+=` L ${x} ${y}`}
+   else if(on){d+=` L ${x} ${y}`;on=false}
+  }
+  if(d)paths.push(d);
+ }
+ return paths;
+}
+
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+</script>
+</body>
+</html>
