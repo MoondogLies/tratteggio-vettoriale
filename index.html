@@ -447,17 +447,10 @@ function embroideryStitches(rgb,w,h,stitchLength,stitchSpacing,stitchWidth,light
   return d;
  }
 
- function directionalOffsetPath(pts,amount){
+ function offsetPath(pts,offsetX,offsetY){
   const out=[];
   for(let i=0;i<pts.length;i++){
-   const prev=pts[Math.max(0,i-1)], next=pts[Math.min(pts.length-1,i+1)];
-   let tx=next.x-prev.x, ty=next.y-prev.y;
-   const m=Math.hypot(tx,ty);
-   if(m<0.0001){out.push({x:pts[i].x,y:pts[i].y});continue}
-   tx/=m; ty/=m;
-   const nx=-ty, ny=tx;
-   const facing=lightX*nx+lightY*ny;
-   out.push({x:pts[i].x+nx*facing*amount, y:pts[i].y+ny*facing*amount});
+   out.push({x:pts[i].x+offsetX, y:pts[i].y+offsetY});
   }
   return out;
  }
@@ -485,20 +478,17 @@ function embroideryStitches(rgb,w,h,stitchLength,stitchSpacing,stitchWidth,light
 
    const compressed=palette.length?nearestPaletteColor(avg,palette):avg;
 
-   const base=rgbStr(mixColor(compressed,[0,0,0],0.12));
-   const shadow=rgbStr(mixColor(compressed,[0,0,0],0.55));
-   const highlight=rgbStr(mixColor(compressed,[255,255,255],0.65));
-   const specular=rgbStr(mixColor(compressed,[255,255,255],0.9));
+   const base=rgbStr(mixColor(compressed,[0,0,0],0.08));
+   const shadow=rgbStr(mixColor(compressed,[0,0,0],0.45));
+   const highlight=rgbStr(mixColor(compressed,[255,255,255],0.45));
 
    const d=pathFromPoints(pts);
-   const dShadow=pathFromPoints(directionalOffsetPath(pts,-stitchWidth*0.42));
-   const dHighlight=pathFromPoints(directionalOffsetPath(pts,stitchWidth*0.34));
-   const dSpecular=pathFromPoints(directionalOffsetPath(pts,stitchWidth*0.14));
+   const dShadow=pathFromPoints(pts,-lightX*stitchWidth*0.3,-lightY*stitchWidth*0.3);
+   const dHighlight=pathFromPoints(pts,lightX*stitchWidth*0.22,lightY*stitchWidth*0.22);
 
-   stitches.push({d:dShadow,stroke:shadow,width:stitchWidth*1.15,opacity:0.55});
+   stitches.push({d:dShadow,stroke:shadow,width:stitchWidth,opacity:0.35});
    stitches.push({d,stroke:base,width:stitchWidth});
-   stitches.push({d:dHighlight,stroke:highlight,width:stitchWidth*0.55,opacity:0.85});
-   stitches.push({d:dSpecular,stroke:specular,width:stitchWidth*0.22,opacity:0.9});
+   stitches.push({d:dHighlight,stroke:highlight,width:stitchWidth*0.35,opacity:0.6});
   }
  }
 
