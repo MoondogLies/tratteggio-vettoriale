@@ -21,6 +21,8 @@ body{background:#101014;color:#e8e8ee;font:15px/1.45 system-ui,sans-serif}
 .controls.open{transform:translateY(0)}
 .controls h2{margin:0 0 12px;font-size:16px}
 .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 16px;align-items:end}
+.ctrl{display:none}
+.ctrl.visible{display:block}
 label{display:block;font-size:11px;color:#a8a8b4;margin-bottom:5px}
 input[type=range]{width:100%}
 select,input[type=number],input[type=file]{width:100%;background:#0c0c10;color:#e8e8ee;border:1px solid #33333d;border-radius:8px;padding:8px}
@@ -56,9 +58,9 @@ textarea{width:100%;height:110px;margin-top:10px;background:#0c0c10;color:#d8d8e
 <h2>Impostazioni stampa</h2>
 
 <div class="row">
-<div><label>Immagine</label><input type="file" id="file" accept="image/*"></div>
+<div class="ctrl visible" data-modes="cmyk mono comic embroidery"><label>Immagine</label><input type="file" id="file" accept="image/*"></div>
 
-<div><label>Stile</label>
+<div class="ctrl visible" data-modes="cmyk mono comic embroidery"><label>Stile</label>
 <select id="style">
 <option value="cmyk">CMYK fuori registro</option>
 <option value="mono">Halftone bianco/nero</option>
@@ -66,40 +68,40 @@ textarea{width:100%;height:110px;margin-top:10px;background:#0c0c10;color:#d8d8e
 <option value="embroidery">Ricamo · fili</option>
 </select></div>
 
-<div><label>Lunghezza punto: <span id="stitchLengthValue">8</span> px</label>
-<input type="range" id="stitchLength" min="3" max="30" value="8"></div>
-
-<div><label>Spaziatura punti: <span id="stitchSpacingValue">6</span> px</label>
-<input type="range" id="stitchSpacing" min="3" max="20" value="6"></div>
-
-<div><label>Spessore filo: <span id="stitchWidthValue">2</span> px</label>
-<input type="range" id="stitchWidth" min="1" max="6" step="0.5" value="2"></div>
-
-<div><label>Risoluzione retino: <span id="spacingValue">4</span> px</label>
+<div class="ctrl" data-modes="cmyk mono comic"><label>Risoluzione retino: <span id="spacingValue">4</span> px</label>
 <input type="range" id="spacing" min="3" max="14" value="4"></div>
 
-<div><label>Sfocatura: <span id="blurValue">1.5</span></label>
+<div class="ctrl" data-modes="cmyk mono comic"><label>Sfocatura: <span id="blurValue">1.5</span></label>
 <input type="range" id="blur" min="0" max="6" step="0.5" value="1.5"></div>
 
-<div><label>Ingrasso punto: <span id="dotGainValue">12</span>%</label>
+<div class="ctrl" data-modes="cmyk mono comic"><label>Ingrasso punto: <span id="dotGainValue">12</span>%</label>
 <input type="range" id="dotGain" min="0" max="40" value="12"></div>
 
-<div><label>Contrasto: <span id="contrastValue">30</span></label>
+<div class="ctrl" data-modes="cmyk mono comic"><label>Contrasto: <span id="contrastValue">30</span></label>
 <input type="range" id="contrast" min="-50" max="150" value="30"></div>
 
-<div><label>Gamma: <span id="gammaValue">1.2</span></label>
+<div class="ctrl" data-modes="cmyk mono comic"><label>Gamma: <span id="gammaValue">1.2</span></label>
 <input type="range" id="gamma" min="0.5" max="3" step="0.05" value="1.2"></div>
 
-<div><label>Variabilità inchiostro: <span id="inkVarValue">12</span>%</label>
+<div class="ctrl" data-modes="cmyk mono comic"><label>Variabilità inchiostro: <span id="inkVarValue">12</span>%</label>
 <input type="range" id="inkVar" min="0" max="50" value="12"></div>
 
-<div><label>Fuori registro: <span id="offsetValue">1.2</span> px</label>
+<div class="ctrl" data-modes="cmyk comic"><label>Fuori registro: <span id="offsetValue">1.2</span> px</label>
 <input type="range" id="offset" min="0" max="6" step="0.1" value="1.2"></div>
 
-<div><label>Rumore registro: <span id="jitterValue">0.5</span> px</label>
+<div class="ctrl" data-modes="cmyk comic"><label>Rumore registro: <span id="jitterValue">0.5</span> px</label>
 <input type="range" id="jitter" min="0" max="3" step="0.1" value="0.5"></div>
 
-<div><button id="convert">Converti</button></div>
+<div class="ctrl" data-modes="embroidery"><label>Lunghezza punto: <span id="stitchLengthValue">8</span> px</label>
+<input type="range" id="stitchLength" min="3" max="30" value="8"></div>
+
+<div class="ctrl" data-modes="embroidery"><label>Spaziatura punti: <span id="stitchSpacingValue">6</span> px</label>
+<input type="range" id="stitchSpacing" min="3" max="20" value="6"></div>
+
+<div class="ctrl" data-modes="embroidery"><label>Spessore filo: <span id="stitchWidthValue">2</span> px</label>
+<input type="range" id="stitchWidth" min="1" max="6" step="0.5" value="2"></div>
+
+<div class="ctrl visible" data-modes="cmyk mono comic embroidery"><button id="convert">Converti</button></div>
 </div>
 
 <div class="actions">
@@ -129,6 +131,14 @@ toggleControls.onclick=()=>{
  toggleControls.textContent=controlsPanel.classList.contains('open')?'Chiudi':'Controlli';
 };
 
+function updateControlsVisibility(){
+ const mode=styleInput.value;
+ document.querySelectorAll('.ctrl').forEach(el=>{
+  const modes=(el.dataset.modes||'').split(' ');
+  el.classList.toggle('visible',modes.includes(mode));
+ });
+}
+
 function refreshLabels(){
  $('spacingValue').textContent=spacingInput.value;
  $('blurValue').textContent=blurInput.value;
@@ -143,10 +153,13 @@ function refreshLabels(){
  $('stitchWidthValue').textContent=stitchWidthInput.value;
 }
 refreshLabels();
+updateControlsVisibility();
 
 ['spacing','blur','dotGain','contrast','gamma','inkVar','offset','jitter','stitchLength','stitchSpacing','stitchWidth'].forEach(id=>{
  $(id).oninput=refreshLabels;
 });
+
+styleInput.onchange=updateControlsVisibility;
 
 fileInput.onchange=()=>{
  const file=fileInput.files[0];
