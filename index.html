@@ -1,1 +1,629 @@
-FULL_UPDATED_INDEX_HTML_WITH_PER_SEGMENT_DIRECTIONAL_SHADING
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stampa da giornale · Ricamo · SVG</title>
+<style>
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:#101014;color:#e8e8ee;font:15px/1.45 system-ui,sans-serif}
+
+.stage{display:flex;height:100dvh;width:100%}
+.pane{flex:1 1 50%;position:relative;display:grid;place-items:center;background:#f2ecd8;overflow:hidden}
+.pane canvas,.pane svg{max-width:100%;max-height:100%;width:auto;height:auto;display:block}
+.tag{position:absolute;top:10px;left:10px;background:rgba(15,15,20,.72);color:#fff;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:4px 8px;border-radius:6px;pointer-events:none}
+
+#toggleControls{position:fixed;bottom:calc(14px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:30;background:#2f6fed;color:#fff;border:0;border-radius:999px;padding:12px 20px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+
+.controls{position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(20,20,26,.96);backdrop-filter:blur(14px);border-top:1px solid #33333d;padding:16px 16px calc(18px + env(safe-area-inset-bottom));transform:translateY(110%);transition:transform .28s ease;max-height:78dvh;overflow:auto}
+.controls.open{transform:translateY(0)}
+.controls h2{margin:0 0 12px;font-size:16px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 16px;align-items:end}
+.ctrl{display:none}
+.ctrl.visible{display:block}
+label{display:block;font-size:11px;color:#a8a8b4;margin-bottom:5px}
+input[type=range]{width:100%}
+select,input[type=number],input[type=file]{width:100%;background:#0c0c10;color:#e8e8ee;border:1px solid #33333d;border-radius:8px;padding:8px}
+.actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+button{background:#2f6fed;border:0;color:#fff;padding:10px 14px;border-radius:9px;font-weight:600;cursor:pointer}
+button.secondary{background:#33333d}
+button:disabled{opacity:.45;cursor:not-allowed}
+.status{margin-top:10px;color:#9d9daa;font-size:12px}
+textarea{width:100%;height:110px;margin-top:10px;background:#0c0c10;color:#d8d8e2;border:1px solid #2b2b34;border-radius:8px;font:11px/1.4 ui-monospace,monospace;padding:8px;resize:vertical}
+
+@media (max-width:640px){
+ .stage{flex-direction:row}
+ .pane{min-width:0}
+ .tag{font-size:9px;padding:3px 6px}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+<div class="pane">
+<canvas id="preview"></canvas>
+<span class="tag">Originale</span>
+</div>
+<div class="pane">
+<div id="svgBox"></div>
+<span class="tag">Stampa</span>
+</div>
+</div>
+
+<button id="toggleControls">Controlli</button>
+
+<div class="controls" id="controlsPanel">
+<h2>Impostazioni stampa</h2>
+
+<div class="row">
+<div class="ctrl visible" data-modes="cmyk mono comic embroidery"><label>Immagine</label><input type="file" id="file" accept="image/*"></div>
+
+<div class="ctrl visible" data-modes="cmyk mono comic embroidery"><label>Stile</label>
+<select id="style">
+<option value="cmyk">CMYK fuori registro</option>
+<option value="mono">Halftone bianco/nero</option>
+<option value="comic">Stampa fumetto · CMYK</option>
+<option value="embroidery">Ricamo · fili</option>
+</select></div>
+
+<div class="ctrl" data-modes="cmyk mono comic"><label>Risoluzione retino: <span id="spacingValue">4</span> px</label>
+<input type="range" id="spacing" min="3" max="14" value="4"></div>
+
+<div class="ctrl" data-modes="cmyk mono comic"><label>Sfocatura: <span id="blurValue">1.5</span></label>
+<input type="range" id="blur" min="0" max="6" step="0.5" value="1.5"></div>
+
+<div class="ctrl" data-modes="cmyk mono comic"><label>Ingrasso punto: <span id="dotGainValue">12</span>%</label>
+<input type="range" id="dotGain" min="0" max="40" value="12"></div>
+
+<div class="ctrl" data-modes="cmyk mono comic"><label>Contrasto: <span id="contrastValue">30</span></label>
+<input type="range" id="contrast" min="-50" max="150" value="30"></div>
+
+<div class="ctrl" data-modes="cmyk mono comic"><label>Gamma: <span id="gammaValue">1.2</span></label>
+<input type="range" id="gamma" min="0.5" max="3" step="0.05" value="1.2"></div>
+
+<div class="ctrl" data-modes="cmyk mono comic"><label>Variabilità inchiostro: <span id="inkVarValue">12</span>%</label>
+<input type="range" id="inkVar" min="0" max="50" value="12"></div>
+
+<div class="ctrl" data-modes="cmyk comic"><label>Fuori registro: <span id="offsetValue">1.2</span> px</label>
+<input type="range" id="offset" min="0" max="6" step="0.1" value="1.2"></div>
+
+<div class="ctrl" data-modes="cmyk comic"><label>Rumore registro: <span id="jitterValue">0.5</span> px</label>
+<input type="range" id="jitter" min="0" max="3" step="0.1" value="0.5"></div>
+
+<div class="ctrl" data-modes="embroidery"><label>Lunghezza punto: <span id="stitchLengthValue">10</span> px</label>
+<input type="range" id="stitchLength" min="4" max="40" value="10"></div>
+
+<div class="ctrl" data-modes="embroidery"><label>Spaziatura punti: <span id="stitchSpacingValue">5</span> px</label>
+<input type="range" id="stitchSpacing" min="2" max="20" value="5"></div>
+
+<div class="ctrl" data-modes="embroidery"><label>Spessore filo: <span id="stitchWidthValue">2</span> px</label>
+<input type="range" id="stitchWidth" min="1" max="6" step="0.5" value="2"></div>
+
+<div class="ctrl" data-modes="embroidery"><label>Direzione luce: <span id="lightAngleValue">315</span>°</label>
+<input type="range" id="lightAngle" min="0" max="359" value="315"></div>
+
+<div class="ctrl" data-modes="embroidery"><label>Precompressione colori: <span id="colorCompressionValue">35</span>%</label>
+<input type="range" id="colorCompression" min="0" max="100" value="35"></div>
+
+<div class="ctrl visible" data-modes="cmyk mono comic embroidery"><button id="convert">Converti</button></div>
+</div>
+
+<div class="actions">
+<button id="download" class="secondary" disabled>Scarica SVG</button>
+<button id="copy" class="secondary" disabled>Copia path SVG</button>
+</div>
+
+<div class="status" id="status">Carica un’immagine per iniziare.</div>
+<textarea id="output" readonly placeholder="Qui compariranno i path SVG…"></textarea>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const fileInput=$('file'), styleInput=$('style'), spacingInput=$('spacing'),
+blurInput=$('blur'), dotGainInput=$('dotGain'), contrastInput=$('contrast'),
+gammaInput=$('gamma'), inkVarInput=$('inkVar'), offsetInput=$('offset'),
+jitterInput=$('jitter'), stitchLengthInput=$('stitchLength'),
+stitchSpacingInput=$('stitchSpacing'), stitchWidthInput=$('stitchWidth'),
+lightAngleInput=$('lightAngle'), colorCompressionInput=$('colorCompression'),
+convertButton=$('convert'), downloadButton=$('download'), copyButton=$('copy'),
+statusEl=$('status'), preview=$('preview'), svgBox=$('svgBox'),
+output=$('output'), controlsPanel=$('controlsPanel'), toggleControls=$('toggleControls');
+
+let image=null, svg='';
+
+toggleControls.onclick=()=>{
+ controlsPanel.classList.toggle('open');
+ toggleControls.textContent=controlsPanel.classList.contains('open')?'Chiudi':'Controlli';
+};
+
+function updateControlsVisibility(){
+ const mode=styleInput.value;
+ document.querySelectorAll('.ctrl').forEach(el=>{
+  const modes=(el.dataset.modes||'').split(' ');
+  el.classList.toggle('visible',modes.includes(mode));
+ });
+}
+
+function refreshLabels(){
+ $('spacingValue').textContent=spacingInput.value;
+ $('blurValue').textContent=blurInput.value;
+ $('dotGainValue').textContent=dotGainInput.value;
+ $('contrastValue').textContent=contrastInput.value;
+ $('gammaValue').textContent=gammaInput.value;
+ $('inkVarValue').textContent=inkVarInput.value;
+ $('offsetValue').textContent=offsetInput.value;
+ $('jitterValue').textContent=jitterInput.value;
+ $('stitchLengthValue').textContent=stitchLengthInput.value;
+ $('stitchSpacingValue').textContent=stitchSpacingInput.value;
+ $('stitchWidthValue').textContent=stitchWidthInput.value;
+ $('lightAngleValue').textContent=lightAngleInput.value;
+ $('colorCompressionValue').textContent=colorCompressionInput.value;
+}
+refreshLabels();
+updateControlsVisibility();
+
+['spacing','blur','dotGain','contrast','gamma','inkVar','offset','jitter','stitchLength','stitchSpacing','stitchWidth','lightAngle','colorCompression'].forEach(id=>{
+ $(id).oninput=refreshLabels;
+});
+
+styleInput.onchange=updateControlsVisibility;
+
+fileInput.onchange=()=>{
+ const file=fileInput.files[0];
+ if(!file)return;
+ const url=URL.createObjectURL(file);
+ const img=new Image();
+ img.onload=()=>{image=img;drawPreview(img);statusEl.textContent='Immagine caricata. Premi Converti.';URL.revokeObjectURL(url)};
+ img.onerror=()=>{statusEl.textContent='File immagine non leggibile.';URL.revokeObjectURL(url)};
+ img.src=url;
+};
+
+function drawPreview(img){
+ const max=1100, scale=Math.min(1,max/Math.max(img.width,img.height));
+ const w=Math.max(1,Math.round(img.width*scale)), h=Math.max(1,Math.round(img.height*scale));
+ preview.width=w;preview.height=h;
+ preview.style.width='auto';preview.style.height='auto';
+ preview.getContext('2d',{willReadFrequently:true}).drawImage(img,0,0,w,h);
+}
+
+convertButton.onclick=()=>{
+ if(!image){statusEl.textContent='Carica prima un’immagine.';return}
+ statusEl.textContent='Generazione separazioni…';
+ convertButton.disabled=true;
+ setTimeout(()=>{
+  try{
+   const r=makePrint(
+    image,
+    styleInput.value,
+    +spacingInput.value,
+    +blurInput.value,
+    +dotGainInput.value/100,
+    +contrastInput.value,
+    +gammaInput.value,
+    +inkVarInput.value/100,
+    +offsetInput.value,
+    +jitterInput.value,
+    +stitchLengthInput.value,
+    +stitchSpacingInput.value,
+    +stitchWidthInput.value,
+    +lightAngleInput.value,
+    +colorCompressionInput.value/100
+   );
+   svgBox.innerHTML=r.svg;
+   output.value=r.pathData.join('\n');
+   svg=r.svg;
+   downloadButton.disabled=false;copyButton.disabled=false;
+   statusEl.textContent=`${r.count} elementi vettoriali generati.`;
+  }catch(e){console.error(e);statusEl.textContent='Errore: '+e.message}
+  finally{convertButton.disabled=false}
+ },30);
+};
+
+downloadButton.onclick=()=>{
+ const blob=new Blob([svg],{type:'image/svg+xml'});
+ const a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);a.download='ricamo-fili.svg';a.click();
+ URL.revokeObjectURL(a.href);
+};
+
+copyButton.onclick=async()=>{
+ await navigator.clipboard.writeText(output.value);
+ statusEl.textContent='Path SVG copiati negli appunti.';
+};
+
+function makePrint(img,style,spacing,blur,dotGain,contrast,gamma,inkVariability,offset,jitter,stitchLength,stitchSpacing,stitchWidth,lightAngle,colorCompression){
+ const max=1100, scale=Math.min(1,max/Math.max(img.width,img.height));
+ const w=Math.max(1,Math.round(img.width*scale)), h=Math.max(1,Math.round(img.height*scale));
+ const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+ const ctx=canvas.getContext('2d',{willReadFrequently:true});
+ ctx.drawImage(img,0,0,w,h);
+ const rgb=ctx.getImageData(0,0,w,h).data;
+
+ if(style==='embroidery'){
+  const r=embroideryStitches(rgb,w,h,stitchLength,stitchSpacing,stitchWidth,lightAngle,colorCompression);
+  return r;
+ }
+
+ const channels=[];
+ const perfectRegistration=(offset===0 && jitter===0);
+
+ if(style==='mono'){
+  let gray=grayscale(rgb,w,h);
+  gray=normalize01(gray);
+  gray=invert01(gray);
+  if(blur>0)gray=blurBox(gray,w,h,blur);
+  gray=contrastAdjust(gray,contrast);
+
+  channels.push({
+   name:'K', color:'#1a1a1a', angle:45,
+   dx:0, dy:0,
+   field:gray
+  });
+ }else{
+  const cmyk=rgbToCmyk(rgb,w,h);
+  const classicAngles={C:15,M:75,Y:0,K:45};
+  const classicOffsets={
+   C:[offset,0],
+   M:[0,offset],
+   Y:[-offset*0.8,-offset*0.8],
+   K:[0,0]
+  };
+  const colors={C:'#00AEEF',M:'#EC008C',Y:'#FFDE17',K:'#1a1a1a'};
+
+  for(const key of ['C','M','Y','K']){
+   let field=cmyk[key];
+   if(blur>0)field=blurBox(field,w,h,blur);
+   field=contrastAdjust(field,contrast);
+
+   let angle, dx, dy;
+
+   if(perfectRegistration){
+    angle=45;
+    dx=0;
+    dy=0;
+   }else{
+    angle=classicAngles[key];
+    dx=classicOffsets[key][0];
+    dy=classicOffsets[key][1];
+   }
+
+   if(jitter>0){
+    dx+=(Math.random()-0.5)*2*jitter;
+    dy+=(Math.random()-0.5)*2*jitter;
+   }
+
+   channels.push({
+    name:key,
+    color:colors[key],
+    angle,
+    dx,
+    dy,
+    field
+   });
+  }
+ }
+
+ const groups=channels.map(ch=>{
+  const dots=halftone(ch.field,w,h,spacing,ch.angle,gamma,ch.dx,ch.dy,inkVariability,dotGain);
+  return {
+   color:ch.color,
+   paths:dots
+  };
+ });
+
+ const groupMarkup=groups.map(group=>
+  `  <g style="mix-blend-mode:multiply" fill="${group.color}">\n${group.paths.map(d=>`    <path d="${d}"/>`).join('\n')}\n  </g>`
+ ).join('\n');
+
+ const svgText=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+<rect width="100%" height="100%" fill="#f2ecd8"/>
+${groupMarkup}
+</svg>`;
+
+ return{
+  svg:svgText,
+  pathData:groups.flatMap(g=>g.paths),
+  count:groups.reduce((n,g)=>n+g.paths.length,0)
+ };
+}
+
+function buildPalette(rgb,w,h,strength){
+ const samples=[];
+ const stride=Math.max(1,Math.round(Math.sqrt((w*h)/3000)));
+ for(let y=0;y<h;y+=stride){
+  for(let x=0;x<w;x+=stride){
+   const i=(y*w+x)*4;
+   samples.push([rgb[i],rgb[i+1],rgb[i+2]]);
+  }
+ }
+ if(!samples.length)return [];
+
+ const k=Math.max(2,Math.min(32,Math.round(2+strength*30)));
+ let centers=[];
+ for(let i=0;i<k;i++){
+  centers.push(samples[Math.floor(Math.random()*samples.length)].slice());
+ }
+
+ for(let iter=0;iter<8;iter++){
+  const sums=centers.map(()=>[0,0,0,0]);
+  for(const c of samples){
+   let best=0, bestD=Infinity;
+   for(let j=0;j<centers.length;j++){
+    const dr=c[0]-centers[j][0], dg=c[1]-centers[j][1], db=c[2]-centers[j][2];
+    const d=dr*dr+dg*dg+db*db;
+    if(d<bestD){bestD=d;best=j}
+   }
+   sums[best][0]+=c[0];sums[best][1]+=c[1];sums[best][2]+=c[2];sums[best][3]++;
+  }
+  centers=centers.map((c,j)=>sums[j][3]?[sums[j][0]/sums[j][3],sums[j][1]/sums[j][3],sums[j][2]/sums[j][3]]:c);
+ }
+ return centers;
+}
+
+function nearestPaletteColor(color,palette){
+ if(!palette.length)return color;
+ let best=palette[0], bestD=Infinity;
+ for(const p of palette){
+  const dr=color[0]-p[0], dg=color[1]-p[1], db=color[2]-p[2];
+  const d=dr*dr+dg*dg+db*db;
+  if(d<bestD){bestD=d;best=p}
+ }
+ return best;
+}
+
+function embroideryStitches(rgb,w,h,stitchLength,stitchSpacing,stitchWidth,lightAngle,colorCompression){
+ const stitches=[];
+ let gray=grayscale(rgb,w,h);
+ gray=normalize01(gray);
+ gray=blurBox(gray,w,h,3);
+
+ const maxStitches=25000;
+ const minSpacing=Math.max(2,Math.sqrt((w*h)/maxStitches));
+ const effectiveSpacing=Math.max(stitchSpacing,minSpacing);
+
+ const lightRad=(lightAngle||315)*Math.PI/180;
+ const lightX=Math.cos(lightRad);
+ const lightY=Math.sin(lightRad);
+
+ const palette=colorCompression>0?buildPalette(rgb,w,h,colorCompression):[];
+
+ function colorAt(x,y){
+  const i=(Math.max(0,Math.min(h-1,Math.round(y)))*w+Math.max(0,Math.min(w-1,Math.round(x))))*4;
+  return [rgb[i],rgb[i+1],rgb[i+2]];
+ }
+
+ function gradAt(x,y){
+  const get=(xx,yy)=>{
+   xx=Math.max(0,Math.min(w-1,Math.round(xx)));
+   yy=Math.max(0,Math.min(h-1,Math.round(yy)));
+   return gray[yy*w+xx];
+  };
+  const gx=-get(x-1,y-1)-2*get(x-1,y)-get(x-1,y+1)+get(x+1,y-1)+2*get(x+1,y)+get(x+1,y+1);
+  const gy=-get(x-1,y-1)-2*get(x,y-1)-get(x+1,y-1)+get(x-1,y+1)+2*get(x,y+1)+get(x+1,y+1);
+  return {gx,gy};
+ }
+
+ function dirAt(x,y){
+  const g=gradAt(x,y);
+  const mag=Math.hypot(g.gx,g.gy);
+  if(mag<0.001)return {dx:1,dy:0,mag:0};
+  return {dx:-g.gy/mag,dy:g.gx/mag,mag};
+ }
+
+ function mixColor(c,target,t){
+  return [c[0]+(target[0]-c[0])*t, c[1]+(target[1]-c[1])*t, c[2]+(target[2]-c[2])*t];
+ }
+
+ function rgbStr(c){
+  return `rgb(${Math.max(0,Math.min(255,Math.round(c[0])))},${Math.max(0,Math.min(255,Math.round(c[1])))},${Math.max(0,Math.min(255,Math.round(c[2])))})`;
+ }
+
+ function integrate(seedX,seedY,dirSign,len){
+  const pts=[];
+  let x=seedX, y=seedY;
+  const step=1.2;
+  const steps=Math.max(2,Math.round(len/step));
+  const phase=Math.random()*Math.PI*2;
+  for(let i=0;i<steps;i++){
+   const d=dirAt(x,y);
+   let dx=d.dx*dirSign, dy=d.dy*dirSign;
+   const wobble=Math.sin(i*0.35+phase)*0.25;
+   const px=-dy, py=dx;
+   dx+=px*wobble; dy+=py*wobble;
+   const m=Math.hypot(dx,dy)||1;
+   x+=dx/m*step; y+=dy/m*step;
+   if(x<0||x>=w||y<0||y>=h)break;
+   pts.push({x,y});
+  }
+  return pts;
+ }
+
+ function pathFromPoints(pts){
+  if(pts.length<2)return '';
+  let d=`M ${r2(pts[0].x)} ${r2(pts[0].y)}`;
+  for(let i=1;i<pts.length;i++)d+=` L ${r2(pts[i].x)} ${r2(pts[i].y)}`;
+  return d;
+ }
+
+ function directionalOffsetPath(pts,amount){
+  const out=[];
+  for(let i=0;i<pts.length;i++){
+   const prev=pts[Math.max(0,i-1)], next=pts[Math.min(pts.length-1,i+1)];
+   let tx=next.x-prev.x, ty=next.y-prev.y;
+   const m=Math.hypot(tx,ty);
+   if(m<0.0001){out.push({x:pts[i].x,y:pts[i].y});continue}
+   tx/=m; ty/=m;
+   const nx=-ty, ny=tx;
+   const facing=lightX*nx+lightY*ny;
+   out.push({x:pts[i].x+nx*facing*amount, y:pts[i].y+ny*facing*amount});
+  }
+  return out;
+ }
+
+ for(let row=0;row<Math.ceil(h/effectiveSpacing);row++){
+  const yBase=row*effectiveSpacing;
+  const stagger=(row%2)?effectiveSpacing/2:0;
+  for(let col=0;col<Math.ceil(w/effectiveSpacing);col++){
+   const x0=col*effectiveSpacing+stagger;
+   const y0=yBase;
+   if(x0>=w||y0>=h)continue;
+
+   const len=stitchLength*(0.8+Math.random()*0.4);
+   const forward=integrate(x0,y0,1,len/2);
+   const backward=integrate(x0,y0,-1,len/2);
+   const pts=backward.reverse().concat([{x:x0,y:y0}],forward);
+   if(pts.length<3)continue;
+
+   const colors=[];
+   for(let i=0;i<pts.length;i+=2){
+    colors.push(colorAt(pts[i].x,pts[i].y));
+   }
+   if(!colors.length)continue;
+   const avg=colors.reduce((a,c)=>[a[0]+c[0],a[1]+c[1],a[2]+c[2]],[0,0,0]).map(v=>v/colors.length);
+
+   const compressed=palette.length?nearestPaletteColor(avg,palette):avg;
+
+   const base=rgbStr(mixColor(compressed,[0,0,0],0.12));
+   const shadow=rgbStr(mixColor(compressed,[0,0,0],0.55));
+   const highlight=rgbStr(mixColor(compressed,[255,255,255],0.65));
+   const specular=rgbStr(mixColor(compressed,[255,255,255],0.9));
+
+   const d=pathFromPoints(pts);
+   const dShadow=pathFromPoints(directionalOffsetPath(pts,-stitchWidth*0.42));
+   const dHighlight=pathFromPoints(directionalOffsetPath(pts,stitchWidth*0.34));
+   const dSpecular=pathFromPoints(directionalOffsetPath(pts,stitchWidth*0.14));
+
+   stitches.push({d:dShadow,stroke:shadow,width:stitchWidth*1.15,opacity:0.55});
+   stitches.push({d,stroke:base,width:stitchWidth});
+   stitches.push({d:dHighlight,stroke:highlight,width:stitchWidth*0.55,opacity:0.85});
+   stitches.push({d:dSpecular,stroke:specular,width:stitchWidth*0.22,opacity:0.9});
+  }
+ }
+
+ const markup=stitches.map(p=>`  <path d="${p.d}" stroke="${p.stroke}" stroke-width="${p.width}"${p.opacity?` opacity="${p.opacity}"`:''}/>`).join('\n');
+ const svgText=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+<rect width="100%" height="100%" fill="#f2ecd8"/>
+<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+${markup}
+</g>
+</svg>`;
+
+ return{
+  svg:svgText,
+  pathData:stitches.map(p=>p.d),
+  count:stitches.length
+ };
+}
+
+function normalize01(gray){
+ const out=new Float32Array(gray.length);
+ for(let i=0;i<gray.length;i++)out[i]=gray[i]/255;
+ return out;
+}
+
+function invert01(gray){
+ const out=new Float32Array(gray.length);
+ for(let i=0;i<gray.length;i++)out[i]=1-gray[i];
+ return out;
+}
+
+function rgbToCmyk(data,w,h){
+ const C=new Float32Array(w*h), M=new Float32Array(w*h),
+ Y=new Float32Array(w*h), K=new Float32Array(w*h);
+
+ for(let i=0,p=0;i<data.length;i+=4,p++){
+  const r=data[i]/255, g=data[i+1]/255, b=data[i+2]/255;
+  const k=1-Math.max(r,g,b);
+  const denom=1-k;
+
+  K[p]=k;
+  C[p]=denom>0.001?(1-r-k)/denom:0;
+  M[p]=denom>0.001?(1-g-k)/denom:0;
+  Y[p]=denom>0.001?(1-b-k)/denom:0;
+ }
+
+ return{C,M,Y,K};
+}
+
+function grayscale(data,w,h){
+ const g=new Float32Array(w*h);
+ for(let i=0,p=0;i<data.length;i+=4,p++)
+  g[p]=.299*data[i]+.587*data[i+1]+.114*data[i+2];
+ return g;
+}
+
+function blurBox(input,w,h,radius){
+ const r=Math.max(1,Math.round(radius));
+ const tmp=new Float32Array(input.length), out=new Float32Array(input.length);
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+  let s=0,n=0;
+  for(let d=-r;d<=r;d++){const xx=x+d;if(xx>=0&&xx<w){s+=input[y*w+xx];n++}}
+  tmp[y*w+x]=s/n;
+ }
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+  let s=0,n=0;
+  for(let d=-r;d<=r;d++){const yy=y+d;if(yy>=0&&yy<h){s+=tmp[yy*w+x];n++}}
+  out[y*w+x]=s/n;
+ }
+ return out;
+}
+
+function contrastAdjust(gray,amount){
+ const f=1+amount/100, out=new Float32Array(gray.length);
+ for(let i=0;i<gray.length;i++)
+  out[i]=Math.max(0,Math.min(1,(gray[i]-0.5)*f+0.5));
+ return out;
+}
+
+function sampleBilinear(g,w,h,x,y){
+ x=Math.max(0,Math.min(w-1.001,x));
+ y=Math.max(0,Math.min(h-1.001,y));
+ const x0=Math.floor(x), y0=Math.floor(y);
+ const x1=Math.min(w-1,x0+1), y1=Math.min(h-1,y0+1);
+ const fx=x-x0, fy=y-y0;
+ const a=g[y0*w+x0], b=g[y0*w+x1], c=g[y1*w+x0], d=g[y1*w+x1];
+ return a*(1-fx)*(1-fy)+b*fx*(1-fy)+c*(1-fx)*fy+d*fx*fy;
+}
+
+function halftone(field,w,h,spacing,angleDeg,gamma,dx,dy,inkVariability,dotGain){
+ const paths=[];
+ const rad=angleDeg*Math.PI/180;
+ const cos=Math.cos(rad), sin=Math.sin(rad);
+ const half=spacing/2;
+ const extent=Math.ceil((w+h)/spacing)+4;
+
+ for(let row=-extent;row<=extent;row++){
+  for(let col=-extent;col<=extent;col++){
+   const u=col*spacing, v=row*spacing;
+   const x=u*cos-v*sin+dx;
+   const y=u*sin+v*cos+dy;
+   if(x<-spacing||x>w+spacing||y<-spacing||y>h+spacing)continue;
+   const value=sampleBilinear(field,w,h,x,y);
+   let ink=Math.pow(Math.max(0,Math.min(1,value)),gamma);
+
+   if(inkVariability>0 && ink>0.02){
+    const variation=1+(Math.random()-0.5)*2*inkVariability;
+    ink=Math.max(0,Math.min(1,ink*variation));
+   }
+
+   if(ink<0.02)continue;
+   const r=half*Math.sqrt(ink)*(1+dotGain);
+   if(r<0.18)continue;
+   paths.push(circlePath(x,y,r));
+  }
+ }
+ return paths;
+}
+
+function circlePath(cx,cy,r){
+ return `M ${r2(cx-r)} ${r2(cy)} `+
+  `a ${r2(r)} ${r2(r)} 0 1 0 ${r2(2*r)} 0 `+
+  `a ${r2(r)} ${r2(r)} 0 1 0 ${r2(-2*r)} 0 Z`;
+}
+
+function r2(v){return Math.round(v*100)/100}
+</script>
+</body>
+</html>
