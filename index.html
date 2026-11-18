@@ -322,7 +322,7 @@ function embroideryStitches(rgb,w,h,stitchLength,stitchSpacing,stitchWidth){
  const paths=[];
  let gray=grayscale(rgb,w,h);
  gray=normalize01(gray);
- gray=blurBox(gray,w,h,1);
+ gray=blurBox(gray,w,h,2);
 
  function colorAt(x,y){
   const i=(Math.max(0,Math.min(h-1,Math.round(y)))*w+Math.max(0,Math.min(w-1,Math.round(x))))*4;
@@ -352,26 +352,46 @@ function embroideryStitches(rgb,w,h,stitchLength,stitchSpacing,stitchWidth){
   return {gx,gy};
  }
 
+ function mixWhite(c,t){
+  return [c[0]+(255-c[0])*t, c[1]+(255-c[1])*t, c[2]+(255-c[2])*t];
+ }
+
+ function rgbStr(c){
+  return `rgb(${Math.max(0,Math.min(255,Math.round(c[0])))},${Math.max(0,Math.min(255,Math.round(c[1])))},${Math.max(0,Math.min(255,Math.round(c[2])))})`;
+ }
+
  function jitterColor(c,amount){
   const j=1+(Math.random()-0.5)*2*amount;
-  return `rgb(${Math.max(0,Math.min(255,Math.round(c[0]*j)))},${Math.max(0,Math.min(255,Math.round(c[1]*j)))},${Math.max(0,Math.min(255,Math.round(c[2]*j)))})`;
+  return rgbStr([c[0]*j,c[1]*j,c[2]*j]);
  }
 
  for(let y=0;y<h;y+=stitchSpacing){
   for(let x=0;x<w;x+=Math.max(3,Math.round(stitchLength*1.2))){
    const color=avgColorBox(x,y,2);
    const g=gradAt(x,y);
+   const mag=Math.hypot(g.gx,g.gy);
    let angle=Math.atan2(g.gy,g.gx)+Math.PI/2;
-   angle+=(Math.random()-0.5)*0.25;
-   const dx=Math.cos(angle)*stitchLength/2;
-   const dy=Math.sin(angle)*stitchLength/2;
+   angle+=(Math.random()-0.5)*0.2;
+
+   const detail=Math.max(0,Math.min(1,mag/80));
+   const len=stitchLength*(0.65+0.55*detail)*(0.9+Math.random()*0.2);
+   const dx=Math.cos(angle)*len/2;
+   const dy=Math.sin(angle)*len/2;
+
    const x1=x-dx, y1=y-dy, x2=x+dx, y2=y+dy;
-   const d=`M ${r2(x1)} ${r2(y1)} L ${r2(x2)} ${r2(y2)}`;
-   paths.push({d,stroke:jitterColor(color,0.08),width:stitchWidth});
+   const curve=(Math.random()-0.5)*stitchWidth*0.8;
+   const cx=(x1+x2)/2 - Math.sin(angle)*curve;
+   const cy=(y1+y2)/2 + Math.cos(angle)*curve;
+
+   const base=jitterColor(color,0.08);
+   const highlight=rgbStr(mixWhite(color,0.35));
+
+   paths.push({d:`M ${r2(x1)} ${r2(y1)} Q ${r2(cx)} ${r2(cy)} ${r2(x2)} ${r2(y2)}`,stroke:base,width:stitchWidth});
+   paths.push({d:`M ${r2(x1)} ${r2(y1)} Q ${r2(cx)} ${r2(cy)} ${r2(x2)} ${r2(y2)}`,stroke:highlight,width:stitchWidth*0.35,opacity:0.55});
   }
  }
 
- const markup=paths.map(p=>`  <path d="${p.d}" stroke="${p.stroke}" stroke-width="${p.width}"/>`).join('\n');
+ const markup=paths.map(p=>`  <path d="${p.d}" stroke="${p.stroke}" stroke-width="${p.width}"${p.opacity?` opacity="${p.opacity}"`:''}/>`).join('\n');
  const svgText=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
 <rect width="100%" height="100%" fill="#f2ecd8"/>
 <g fill="none" stroke-linecap="round" stroke-linejoin="round">
