@@ -58,14 +58,15 @@ textarea{width:100%;height:110px;margin-top:10px;background:#0c0c10;color:#d8d8e
 <h2>Impostazioni stampa</h2>
 
 <div class="row">
-<div class="ctrl visible" data-modes="cmyk mono comic embroidery"><label>Immagine</label><input type="file" id="file" accept="image/*"></div>
+<div class="ctrl visible" data-modes="cmyk mono comic embroidery vector"><label>Immagine</label><input type="file" id="file" accept="image/*"></div>
 
-<div class="ctrl visible" data-modes="cmyk mono comic embroidery"><label>Stile</label>
+<div class="ctrl visible" data-modes="cmyk mono comic embroidery vector"><label>Stile</label>
 <select id="style">
 <option value="cmyk">CMYK fuori registro</option>
 <option value="mono">Halftone bianco/nero</option>
 <option value="comic">Stampa fumetto · CMYK</option>
 <option value="embroidery">Ricamo · fili</option>
+<option value="vector">Vettoriale · pieni</option>
 </select></div>
 
 <div class="ctrl" data-modes="cmyk mono comic"><label>Risoluzione retino: <span id="spacingValue">4</span> px</label>
@@ -107,7 +108,13 @@ textarea{width:100%;height:110px;margin-top:10px;background:#0c0c10;color:#d8d8e
 <div class="ctrl" data-modes="embroidery"><label>Precompressione colori: <span id="colorCompressionValue">35</span>%</label>
 <input type="range" id="colorCompression" min="0" max="100" value="35"></div>
 
-<div class="ctrl visible" data-modes="cmyk mono comic embroidery"><button id="convert">Converti</button></div>
+<div class="ctrl" data-modes="vector"><label>Colori: <span id="vectorColorsValue">8</span></label>
+<input type="range" id="vectorColors" min="2" max="24" value="8"></div>
+
+<div class="ctrl" data-modes="vector"><label>Semplificazione contorno: <span id="vectorSimplifyValue">1</span> px</label>
+<input type="range" id="vectorSimplify" min="0" max="5" step="0.5" value="1"></div>
+
+<div class="ctrl visible" data-modes="cmyk mono comic embroidery vector"><button id="convert">Converti</button></div>
 </div>
 
 <div class="actions">
@@ -127,6 +134,7 @@ gammaInput=$('gamma'), inkVarInput=$('inkVar'), offsetInput=$('offset'),
 jitterInput=$('jitter'), stitchLengthInput=$('stitchLength'),
 stitchSpacingInput=$('stitchSpacing'), stitchWidthInput=$('stitchWidth'),
 lightAngleInput=$('lightAngle'), colorCompressionInput=$('colorCompression'),
+vectorColorsInput=$('vectorColors'), vectorSimplifyInput=$('vectorSimplify'),
 convertButton=$('convert'), downloadButton=$('download'), copyButton=$('copy'),
 statusEl=$('status'), preview=$('preview'), svgBox=$('svgBox'),
 output=$('output'), controlsPanel=$('controlsPanel'), toggleControls=$('toggleControls');
@@ -160,11 +168,13 @@ function refreshLabels(){
  $('stitchWidthValue').textContent=stitchWidthInput.value;
  $('lightAngleValue').textContent=lightAngleInput.value;
  $('colorCompressionValue').textContent=colorCompressionInput.value;
+ $('vectorColorsValue').textContent=vectorColorsInput.value;
+ $('vectorSimplifyValue').textContent=vectorSimplifyInput.value;
 }
 refreshLabels();
 updateControlsVisibility();
 
-['spacing','blur','dotGain','contrast','gamma','inkVar','offset','jitter','stitchLength','stitchSpacing','stitchWidth','lightAngle','colorCompression'].forEach(id=>{
+['spacing','blur','dotGain','contrast','gamma','inkVar','offset','jitter','stitchLength','stitchSpacing','stitchWidth','lightAngle','colorCompression','vectorColors','vectorSimplify'].forEach(id=>{
  $(id).oninput=refreshLabels;
 });
 
@@ -209,7 +219,9 @@ convertButton.onclick=()=>{
     +stitchSpacingInput.value,
     +stitchWidthInput.value,
     +lightAngleInput.value,
-    +colorCompressionInput.value/100
+    +colorCompressionInput.value/100,
+    +vectorColorsInput.value,
+    +vectorSimplifyInput.value
    );
    svgBox.innerHTML=r.svg;
    output.value=r.pathData.join('\n');
@@ -224,7 +236,9 @@ convertButton.onclick=()=>{
 downloadButton.onclick=()=>{
  const blob=new Blob([svg],{type:'image/svg+xml'});
  const a=document.createElement('a');
- a.href=URL.createObjectURL(blob);a.download='ricamo-fili.svg';a.click();
+ a.href=URL.createObjectURL(blob);
+ a.download=styleInput.value==='vector'?'tracciato-vettoriale.svg':'ricamo-fili.svg';
+ a.click();
  URL.revokeObjectURL(a.href);
 };
 
@@ -233,7 +247,7 @@ copyButton.onclick=async()=>{
  statusEl.textContent='Path SVG copiati negli appunti.';
 };
 
-function makePrint(img,style,spacing,blur,dotGain,contrast,gamma,inkVariability,offset,jitter,stitchLength,stitchSpacing,stitchWidth,lightAngle,colorCompression){
+function makePrint(img,style,spacing,blur,dotGain,contrast,gamma,inkVariability,offset,jitter,stitchLength,stitchSpacing,stitchWidth,lightAngle,colorCompression,vectorColors,vectorSimplify){
  const max=1100, scale=Math.min(1,max/Math.max(img.width,img.height));
  const w=Math.max(1,Math.round(img.width*scale)), h=Math.max(1,Math.round(img.height*scale));
  const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
@@ -244,6 +258,10 @@ function makePrint(img,style,spacing,blur,dotGain,contrast,gamma,inkVariability,
  if(style==='embroidery'){
   const r=embroideryStitches(rgb,w,h,stitchLength,stitchSpacing,stitchWidth,lightAngle,colorCompression);
   return r;
+ }
+
+ if(style==='vector'){
+  return vectorizeFilled(rgb,w,h,vectorColors,vectorSimplify);
  }
 
  const channels=[];
@@ -327,6 +345,158 @@ ${groupMarkup}
   pathData:groups.flatMap(g=>g.paths),
   count:groups.reduce((n,g)=>n+g.paths.length,0)
  };
+}
+
+function vectorizeFilled(rgb,w,h,colorCount,simplifyTol){
+ const palette=buildPalette(rgb,w,h,Math.max(0,(colorCount-2)/30));
+ if(!palette.length)palette.push([128,128,128]);
+ const labels=new Int16Array(w*h);
+ for(let i=0,p=0;i<labels.length;i++,p+=4){
+  const r=rgb[p],g=rgb[p+1],b=rgb[p+2];
+  let best=0,bd=Infinity;
+  for(let j=0;j<palette.length;j++){
+   const dr=r-palette[j][0],dg=g-palette[j][1],db=b-palette[j][2];
+   const d=dr*dr+dg*dg+db*db;
+   if(d<bd){bd=d;best=j}
+  }
+  labels[i]=best;
+ }
+
+ const segs=palette.map(()=>[]);
+ const labelAt=(x,y)=>{
+  if(x<0||y<0||x>=w||y>=h)return -1;
+  return labels[y*w+x];
+ };
+ const addSeg=(k,a,b)=>segs[k].push([a[0],a[1],b[0],b[1]]);
+
+ for(let y=-1;y<h;y++){
+  for(let x=-1;x<w;x++){
+   const la=labelAt(x,y),lb=labelAt(x+1,y),lc=labelAt(x+1,y+1),ld=labelAt(x,y+1);
+   const unique=[...new Set([la,lb,lc,ld].filter(v=>v>=0))];
+   for(const k of unique){
+    const A=la===k,B=lb===k,C=lc===k,D=ld===k;
+    const code=(A?1:0)|(B?2:0)|(C?4:0)|(D?8:0);
+    if(code===0||code===15)continue;
+    const T=[x+0.5,y],R=[x+1,y+0.5],Bm=[x+0.5,y+1],L=[x,y+0.5];
+    switch(code){
+     case 1:addSeg(k,L,T);break;
+     case 2:addSeg(k,T,R);break;
+     case 3:addSeg(k,L,R);break;
+     case 4:addSeg(k,R,Bm);break;
+     case 5:addSeg(k,R,T);addSeg(k,L,Bm);break;
+     case 6:addSeg(k,T,Bm);break;
+     case 7:addSeg(k,L,Bm);break;
+     case 8:addSeg(k,Bm,L);break;
+     case 9:addSeg(k,Bm,T);break;
+     case 10:addSeg(k,T,L);addSeg(k,Bm,R);break;
+     case 11:addSeg(k,Bm,R);break;
+     case 12:addSeg(k,R,L);break;
+     case 13:addSeg(k,R,T);break;
+     case 14:addSeg(k,T,L);break;
+    }
+   }
+  }
+ }
+
+ const paths=[];
+ let count=0;
+ palette.forEach((color,k)=>{
+  const loops=chainSegments(segs[k]);
+  let d='';
+  loops.forEach(loop=>{
+   if(loop.length<3)return;
+   const pts=simplifyClosedPolygon(loop,Math.max(0,simplifyTol));
+   if(pts.length>1){
+    const first=pts[0],last=pts[pts.length-1];
+    if(first[0]===last[0]&&first[1]===last[1])pts.pop();
+   }
+   if(pts.length<3)return;
+   d+=`M ${r2(pts[0][0])} ${r2(pts[0][1])}`;
+   for(let i=1;i<pts.length;i++)d+=` L ${r2(pts[i][0])} ${r2(pts[i][1])}`;
+   d+=' Z ';
+   count++;
+  });
+  if(d)paths.push({color:`rgb(${Math.round(color[0])},${Math.round(color[1])},${Math.round(color[2])})`,d});
+ });
+
+ const markup=paths.map(p=>`  <path d="${p.d}" fill="${p.color}" fill-rule="evenodd"/>`).join('\n');
+ const svgText=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+<rect width="100%" height="100%" fill="#f2ecd8"/>
+${markup}
+</svg>`;
+
+ return{
+  svg:svgText,
+  pathData:paths.map(p=>p.d),
+  count
+ };
+}
+
+function chainSegments(segs){
+ const startMap=new Map();
+ segs.forEach((s,i)=>{
+  const key=s[0]+','+s[1];
+  let arr=startMap.get(key);
+  if(!arr){arr=[];startMap.set(key,arr)}
+  arr.push(i);
+ });
+ const used=new Array(segs.length).fill(false);
+ const loops=[];
+ for(let i=0;i<segs.length;i++){
+  if(used[i])continue;
+  const loop=[];
+  let cur=i;
+  while(cur!==-1){
+   used[cur]=true;
+   loop.push([segs[cur][0],segs[cur][1]]);
+   const endKey=segs[cur][2]+','+segs[cur][3];
+   const candidates=startMap.get(endKey)||[];
+   let next=-1;
+   for(const ci of candidates){
+    if(!used[ci]){next=ci;break}
+   }
+   if(next===-1)break;
+   cur=next;
+  }
+  if(loop.length>2)loops.push(loop);
+ }
+ return loops;
+}
+
+function simplifyClosedPolygon(pts,tol){
+ if(tol<=0||pts.length<5)return pts.concat([pts[0]]);
+ let far=1,maxD=-1;
+ for(let i=1;i<pts.length;i++){
+  const d=Math.hypot(pts[i][0]-pts[0][0],pts[i][1]-pts[0][1]);
+  if(d>maxD){maxD=d;far=i}
+ }
+ const first=pts.slice(0,far+1);
+ const second=pts.slice(far).concat([pts[0]]);
+ const a=simplifyPolyline(first,tol);
+ const b=simplifyPolyline(second,tol);
+ return a.slice(0,-1).concat(b);
+}
+
+function simplifyPolyline(pts,tol){
+ if(tol<=0||pts.length<3)return pts;
+ const keep=new Array(pts.length).fill(false);
+ keep[0]=true;keep[pts.length-1]=true;
+ const stack=[[0,pts.length-1]];
+ while(stack.length){
+  const range=stack.pop();
+  const a=range[0],b=range[1];
+  if(b-a<2)continue;
+  const x1=pts[a][0],y1=pts[a][1],x2=pts[b][0],y2=pts[b][1];
+  const dx=x2-x1,dy=y2-y1;
+  const len=Math.hypot(dx,dy)||1;
+  let maxD=-1,idx=-1;
+  for(let i=a+1;i<b;i++){
+   const d=Math.abs(dy*(pts[i][0]-x1)-dx*(pts[i][1]-y1))/len;
+   if(d>maxD){maxD=d;idx=i}
+  }
+  if(maxD>tol){keep[idx]=true;stack.push([a,idx],[idx,b])}
+ }
+ return pts.filter((_,i)=>keep[i]);
 }
 
 function buildPalette(rgb,w,h,strength){
