@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Stampa da giornale · Pen plotter · SVG</title>
+<title>Stampa da giornale · Fumetto · SVG</title>
 <style>
 :root{color-scheme:dark}
 *{box-sizing:border-box}
@@ -11,7 +11,7 @@ html,body{height:100%;margin:0;overflow:hidden}
 body{background:#101014;color:#e8e8ee;font:15px/1.45 system-ui,sans-serif}
 
 .stage{display:flex;height:100dvh;width:100%}
-.pane{flex:1 1 50%;position:relative;display:grid;place-items:center;background:#f4f1e6;overflow:hidden}
+.pane{flex:1 1 50%;position:relative;display:grid;place-items:center;background:#f2ecd8;overflow:hidden}
 .pane canvas,.pane svg{max-width:100%;max-height:100%;width:auto;height:auto;display:block}
 .tag{position:absolute;top:10px;left:10px;background:rgba(15,15,20,.72);color:#fff;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:4px 8px;border-radius:6px;pointer-events:none}
 
@@ -62,17 +62,17 @@ textarea{width:100%;height:110px;margin-top:10px;background:#0c0c10;color:#d8d8e
 <select id="style">
 <option value="cmyk">CMYK fuori registro</option>
 <option value="mono">Halftone bianco/nero</option>
-<option value="hatch">Tratteggio a linee</option>
+<option value="comic">Stampa fumetto · CMYK</option>
 </select></div>
 
-<div><label>Spaziatura linee: <span id="spacingValue">2</span> px</label>
-<input type="range" id="spacing" min="1" max="14" value="2"></div>
+<div><label>Risoluzione retino: <span id="spacingValue">4</span> px</label>
+<input type="range" id="spacing" min="3" max="14" value="4"></div>
 
 <div><label>Sfocatura: <span id="blurValue">1.5</span></label>
 <input type="range" id="blur" min="0" max="6" step="0.5" value="1.5"></div>
 
-<div><label>Angolo tratteggio: <span id="angleValue">45</span>°</label>
-<input type="range" id="angle" min="0" max="90" value="45"></div>
+<div><label>Ingrasso punto: <span id="dotGainValue">12</span>%</label>
+<input type="range" id="dotGain" min="0" max="40" value="12"></div>
 
 <div><label>Contrasto: <span id="contrastValue">30</span></label>
 <input type="range" id="contrast" min="-50" max="150" value="30"></div>
@@ -104,7 +104,7 @@ textarea{width:100%;height:110px;margin-top:10px;background:#0c0c10;color:#d8d8e
 <script>
 const $=id=>document.getElementById(id);
 const fileInput=$('file'), styleInput=$('style'), spacingInput=$('spacing'),
-blurInput=$('blur'), angleInput=$('angle'), contrastInput=$('contrast'),
+blurInput=$('blur'), dotGainInput=$('dotGain'), contrastInput=$('contrast'),
 gammaInput=$('gamma'), inkVarInput=$('inkVar'), offsetInput=$('offset'),
 jitterInput=$('jitter'), convertButton=$('convert'), downloadButton=$('download'),
 copyButton=$('copy'), statusEl=$('status'), preview=$('preview'),
@@ -121,7 +121,7 @@ toggleControls.onclick=()=>{
 function refreshLabels(){
  $('spacingValue').textContent=spacingInput.value;
  $('blurValue').textContent=blurInput.value;
- $('angleValue').textContent=angleInput.value;
+ $('dotGainValue').textContent=dotGainInput.value;
  $('contrastValue').textContent=contrastInput.value;
  $('gammaValue').textContent=gammaInput.value;
  $('inkVarValue').textContent=inkVarInput.value;
@@ -130,7 +130,7 @@ function refreshLabels(){
 }
 refreshLabels();
 
-['spacing','blur','angle','contrast','gamma','inkVar','offset','jitter'].forEach(id=>{
+['spacing','blur','dotGain','contrast','gamma','inkVar','offset','jitter'].forEach(id=>{
  $(id).oninput=refreshLabels;
 });
 
@@ -163,7 +163,7 @@ convertButton.onclick=()=>{
     styleInput.value,
     +spacingInput.value,
     +blurInput.value,
-    +angleInput.value,
+    +dotGainInput.value/100,
     +contrastInput.value,
     +gammaInput.value,
     +inkVarInput.value/100,
@@ -183,7 +183,7 @@ convertButton.onclick=()=>{
 downloadButton.onclick=()=>{
  const blob=new Blob([svg],{type:'image/svg+xml'});
  const a=document.createElement('a');
- a.href=URL.createObjectURL(blob);a.download='stampa-giornale.svg';a.click();
+ a.href=URL.createObjectURL(blob);a.download='stampa-fumetto.svg';a.click();
  URL.revokeObjectURL(a.href);
 };
 
@@ -192,30 +192,13 @@ copyButton.onclick=async()=>{
  statusEl.textContent='Path SVG copiati negli appunti.';
 };
 
-function makePrint(img,style,spacing,blur,angleDeg,contrast,gamma,inkVariability,offset,jitter){
+function makePrint(img,style,spacing,blur,dotGain,contrast,gamma,inkVariability,offset,jitter){
  const max=1100, scale=Math.min(1,max/Math.max(img.width,img.height));
  const w=Math.max(1,Math.round(img.width*scale)), h=Math.max(1,Math.round(img.height*scale));
  const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
  const ctx=canvas.getContext('2d',{willReadFrequently:true});
  ctx.drawImage(img,0,0,w,h);
  const rgb=ctx.getImageData(0,0,w,h).data;
-
- if(style==='hatch'){
-  let gray=grayscale(rgb,w,h);
-  gray=normalize01(gray);
-  if(blur>0)gray=blurBox(gray,w,h,blur);
-  gray=contrastAdjust(gray,contrast);
-  const paths=hatchLines(gray,w,h,spacing,angleDeg,gamma,inkVariability);
-
-  const svgText=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-<rect width="100%" height="100%" fill="#f7f3e8"/>
-<g fill="none" stroke="#111" stroke-width="0.7" stroke-linecap="round" stroke-linejoin="round">
-${paths.map(d=>`  <path d="${d}"/>`).join('\n')}
-</g>
-</svg>`;
-
-  return{svg:svgText,pathData:paths,count:paths.length};
- }
 
  const channels=[];
  const perfectRegistration=(offset===0 && jitter===0);
@@ -277,7 +260,7 @@ ${paths.map(d=>`  <path d="${d}"/>`).join('\n')}
  }
 
  const groups=channels.map(ch=>{
-  const dots=halftone(ch.field,w,h,spacing,ch.angle,gamma,ch.dx,ch.dy,inkVariability);
+  const dots=halftone(ch.field,w,h,spacing,ch.angle,gamma,ch.dx,ch.dy,inkVariability,dotGain);
   return {
    color:ch.color,
    paths:dots
@@ -289,7 +272,7 @@ ${paths.map(d=>`  <path d="${d}"/>`).join('\n')}
  ).join('\n');
 
  const svgText=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-<rect width="100%" height="100%" fill="#f7f3e8"/>
+<rect width="100%" height="100%" fill="#f2ecd8"/>
 ${groupMarkup}
 </svg>`;
 
@@ -298,56 +281,6 @@ ${groupMarkup}
   pathData:groups.flatMap(g=>g.paths),
   count:groups.reduce((n,g)=>n+g.paths.length,0)
  };
-}
-
-function hatchLines(field,w,h,spacing,angleDeg,gamma,inkVariability){
- const paths=[];
- const rad=angleDeg*Math.PI/180;
- const dirX=Math.cos(rad), dirY=Math.sin(rad);
- const normalX=-dirY, normalY=dirX;
- const extent=Math.ceil(Math.hypot(w,h));
-
- for(let row=-extent;row<=extent;row++){
-  const offsetDistance=row*spacing;
-  const baseX=w/2+normalX*offsetDistance;
-  const baseY=h/2+normalY*offsetDistance;
-  let d='';
-  let drawing=false;
-
-  for(let t=-extent;t<=extent;t++){
-   const x=baseX+dirX*t;
-   const y=baseY+dirY*t;
-   if(x<0||x>=w||y<0||y>=h){
-    if(drawing){paths.push(d);d='';drawing=false}
-    continue;
-   }
-
-   const luma=sampleBilinear(field,w,h,x,y);
-   let ink=Math.pow(Math.max(0,Math.min(1,1-luma)),gamma);
-
-   if(inkVariability>0 && ink>0.02){
-    const variation=1+(Math.random()-0.5)*2*inkVariability;
-    ink=Math.max(0,Math.min(1,ink*variation));
-   }
-
-   if(ink>0.08){
-    if(!drawing){
-     d=`M ${r2(x)} ${r2(y)}`;
-     drawing=true;
-    }else{
-     d+=` L ${r2(x)} ${r2(y)}`;
-    }
-   }else if(drawing){
-    paths.push(d);
-    d='';
-    drawing=false;
-   }
-  }
-
-  if(drawing&&d)paths.push(d);
- }
-
- return paths;
 }
 
 function normalize01(gray){
@@ -420,7 +353,7 @@ function sampleBilinear(g,w,h,x,y){
  return a*(1-fx)*(1-fy)+b*fx*(1-fy)+c*(1-fx)*fy+d*fx*fy;
 }
 
-function halftone(field,w,h,spacing,angleDeg,gamma,dx,dy,inkVariability){
+function halftone(field,w,h,spacing,angleDeg,gamma,dx,dy,inkVariability,dotGain){
  const paths=[];
  const rad=angleDeg*Math.PI/180;
  const cos=Math.cos(rad), sin=Math.sin(rad);
@@ -442,7 +375,7 @@ function halftone(field,w,h,spacing,angleDeg,gamma,dx,dy,inkVariability){
    }
 
    if(ink<0.02)continue;
-   const r=half*Math.sqrt(ink)*1.08;
+   const r=half*Math.sqrt(ink)*(1+dotGain);
    if(r<0.18)continue;
    paths.push(circlePath(x,y,r));
   }
