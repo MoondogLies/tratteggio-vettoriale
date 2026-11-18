@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Stampa da giornale · Fumetto · SVG</title>
+<title>Stampa da giornale · Tessuto intrecciato · SVG</title>
 <style>
 :root{color-scheme:dark}
 *{box-sizing:border-box}
@@ -63,6 +63,22 @@ textarea{width:100%;height:110px;margin-top:10px;background:#0c0c10;color:#d8d8e
 <option value="cmyk">CMYK fuori registro</option>
 <option value="mono">Halftone bianco/nero</option>
 <option value="comic">Stampa fumetto · CMYK</option>
+<option value="weave">Tessuto intrecciato · fili</option>
+</select></div>
+
+<div><label>Passo filo: <span id="threadSpacingValue">6</span> px</label>
+<input type="range" id="threadSpacing" min="3" max="20" value="6"></div>
+
+<div><label>Spessore filo: <span id="threadWidthValue">2.5</span> px</label>
+<input type="range" id="threadWidth" min="1" max="8" step="0.5" value="2.5"></div>
+
+<div><label>Ondulazione: <span id="wavinessValue">1.5</span> px</label>
+<input type="range" id="waviness" min="0" max="5" step="0.1" value="1.5"></div>
+
+<div><label>Intreccio</label>
+<select id="weaveType">
+<option value="plain">Plain (tela)</option>
+<option value="twill">Twill (sarga)</option>
 </select></div>
 
 <div><label>Risoluzione retino: <span id="spacingValue">4</span> px</label>
@@ -106,10 +122,12 @@ const $=id=>document.getElementById(id);
 const fileInput=$('file'), styleInput=$('style'), spacingInput=$('spacing'),
 blurInput=$('blur'), dotGainInput=$('dotGain'), contrastInput=$('contrast'),
 gammaInput=$('gamma'), inkVarInput=$('inkVar'), offsetInput=$('offset'),
-jitterInput=$('jitter'), convertButton=$('convert'), downloadButton=$('download'),
-copyButton=$('copy'), statusEl=$('status'), preview=$('preview'),
-svgBox=$('svgBox'), output=$('output'), controlsPanel=$('controlsPanel'),
-toggleControls=$('toggleControls');
+jitterInput=$('jitter'), threadSpacingInput=$('threadSpacing'),
+threadWidthInput=$('threadWidth'), wavinessInput=$('waviness'),
+weaveTypeInput=$('weaveType'), convertButton=$('convert'),
+downloadButton=$('download'), copyButton=$('copy'), statusEl=$('status'),
+preview=$('preview'), svgBox=$('svgBox'), output=$('output'),
+controlsPanel=$('controlsPanel'), toggleControls=$('toggleControls');
 
 let image=null, svg='';
 
@@ -127,10 +145,13 @@ function refreshLabels(){
  $('inkVarValue').textContent=inkVarInput.value;
  $('offsetValue').textContent=offsetInput.value;
  $('jitterValue').textContent=jitterInput.value;
+ $('threadSpacingValue').textContent=threadSpacingInput.value;
+ $('threadWidthValue').textContent=threadWidthInput.value;
+ $('wavinessValue').textContent=wavinessInput.value;
 }
 refreshLabels();
 
-['spacing','blur','dotGain','contrast','gamma','inkVar','offset','jitter'].forEach(id=>{
+['spacing','blur','dotGain','contrast','gamma','inkVar','offset','jitter','threadSpacing','threadWidth','waviness'].forEach(id=>{
  $(id).oninput=refreshLabels;
 });
 
@@ -168,7 +189,11 @@ convertButton.onclick=()=>{
     +gammaInput.value,
     +inkVarInput.value/100,
     +offsetInput.value,
-    +jitterInput.value
+    +jitterInput.value,
+    +threadSpacingInput.value,
+    +threadWidthInput.value,
+    +wavinessInput.value,
+    weaveTypeInput.value
    );
    svgBox.innerHTML=r.svg;
    output.value=r.pathData.join('\n');
@@ -183,7 +208,7 @@ convertButton.onclick=()=>{
 downloadButton.onclick=()=>{
  const blob=new Blob([svg],{type:'image/svg+xml'});
  const a=document.createElement('a');
- a.href=URL.createObjectURL(blob);a.download='stampa-fumetto.svg';a.click();
+ a.href=URL.createObjectURL(blob);a.download='tessuto-intrecciato.svg';a.click();
  URL.revokeObjectURL(a.href);
 };
 
@@ -192,13 +217,18 @@ copyButton.onclick=async()=>{
  statusEl.textContent='Path SVG copiati negli appunti.';
 };
 
-function makePrint(img,style,spacing,blur,dotGain,contrast,gamma,inkVariability,offset,jitter){
+function makePrint(img,style,spacing,blur,dotGain,contrast,gamma,inkVariability,offset,jitter,threadSpacing,threadWidth,waviness,weaveType){
  const max=1100, scale=Math.min(1,max/Math.max(img.width,img.height));
  const w=Math.max(1,Math.round(img.width*scale)), h=Math.max(1,Math.round(img.height*scale));
  const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
  const ctx=canvas.getContext('2d',{willReadFrequently:true});
  ctx.drawImage(img,0,0,w,h);
  const rgb=ctx.getImageData(0,0,w,h).data;
+
+ if(style==='weave'){
+  const r=weaveFabric(rgb,w,h,threadSpacing,threadWidth,waviness,weaveType);
+  return r;
+ }
 
  const channels=[];
  const perfectRegistration=(offset===0 && jitter===0);
@@ -280,6 +310,91 @@ ${groupMarkup}
   svg:svgText,
   pathData:groups.flatMap(g=>g.paths),
   count:groups.reduce((n,g)=>n+g.paths.length,0)
+ };
+}
+
+function weaveFabric(rgb,w,h,threadSpacing,threadWidth,waviness,weaveType){
+ const paths=[];
+ const warpPaths=[];
+ const weftPaths=[];
+ const step=2;
+
+ function colorAt(x,y){
+  const i=(Math.max(0,Math.min(h-1,Math.round(y)))*w+Math.max(0,Math.min(w-1,Math.round(x))))*4;
+  return [rgb[i],rgb[i+1],rgb[i+2]];
+ }
+
+ function avgColorAlongX(y){
+  let r=0,g=0,b=0,n=0;
+  for(let x=0;x<w;x+=4){const c=colorAt(x,y);r+=c[0];g+=c[1];b+=c[2];n++}
+  return [r/n,g/n,b/n];
+ }
+
+ function avgColorAlongY(x){
+  let r=0,g=0,b=0,n=0;
+  for(let y=0;y<h;y+=4){const c=colorAt(x,y);r+=c[0];g+=c[1];b+=c[2];n++}
+  return [r/n,g/n,b/n];
+ }
+
+ function jitterColor(c,amount){
+  const j=1+(Math.random()-0.5)*2*amount;
+  return `rgb(${Math.max(0,Math.min(255,Math.round(c[0]*j)))},${Math.max(0,Math.min(255,Math.round(c[1]*j)))},${Math.max(0,Math.min(255,Math.round(c[2]*j)))})`;
+ }
+
+ // Warp threads (vertical)
+ for(let x=0;x<w;x+=threadSpacing){
+  const color=avgColorAlongY(x);
+  const stroke=jitterColor(color,0.08);
+  let d='';
+  const phase=Math.random()*Math.PI*2;
+  for(let y=0;y<=h;y+=step){
+   const xOff=Math.sin(y*0.05+phase)*waviness;
+   const px=x+xOff;
+   if(!d)d=`M ${r2(px)} ${r2(y)}`;
+   else d+=` L ${r2(px)} ${r2(y)}`;
+  }
+  warpPaths.push({d,stroke,width:threadWidth});
+ }
+
+ // Weft threads (horizontal), drawn only where over
+ for(let y=0;y<h;y+=threadSpacing){
+  const color=avgColorAlongX(y);
+  const stroke=jitterColor(color,0.08);
+  const rowIndex=Math.round(y/threadSpacing);
+  for(let c=0;c<Math.ceil(w/threadSpacing);c++){
+   const over=weaveType==='twill'
+    ? ((c-rowIndex)%3!==0)
+    : ((c+rowIndex)%2===0);
+   if(!over)continue;
+   const x0=c*threadSpacing;
+   const x1=Math.min(w,(c+1)*threadSpacing);
+   let d='';
+   const phase=Math.random()*Math.PI*2;
+   for(let x=x0;x<=x1;x+=step){
+    const yOff=Math.sin(x*0.05+phase)*waviness;
+    const py=y+yOff;
+    if(!d)d=`M ${r2(x)} ${r2(py)}`;
+    else d+=` L ${r2(x)} ${r2(py)}`;
+   }
+   weftPaths.push({d,stroke,width:threadWidth});
+  }
+ }
+
+ const warpMarkup=warpPaths.map(p=>`  <path d="${p.d}" stroke="${p.stroke}" stroke-width="${p.width}"/>`).join('\n');
+ const weftMarkup=weftPaths.map(p=>`  <path d="${p.d}" stroke="${p.stroke}" stroke-width="${p.width}"/>`).join('\n');
+
+ const svgText=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+<rect width="100%" height="100%" fill="#111111"/>
+<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+${warpMarkup}
+${weftMarkup}
+</g>
+</svg>`;
+
+ return{
+  svg:svgText,
+  pathData:[...warpPaths,...weftPaths].map(p=>p.d),
+  count:warpPaths.length+weftPaths.length
  };
 }
 
