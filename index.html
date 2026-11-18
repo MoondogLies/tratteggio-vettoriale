@@ -104,6 +104,9 @@ textarea{width:100%;height:110px;margin-top:10px;background:#0c0c10;color:#d8d8e
 <div class="ctrl" data-modes="embroidery"><label>Direzione luce: <span id="lightAngleValue">315</span>°</label>
 <input type="range" id="lightAngle" min="0" max="359" value="315"></div>
 
+<div class="ctrl" data-modes="embroidery"><label>Precompressione colori: <span id="colorCompressionValue">35</span>%</label>
+<input type="range" id="colorCompression" min="0" max="100" value="35"></div>
+
 <div class="ctrl visible" data-modes="cmyk mono comic embroidery"><button id="convert">Converti</button></div>
 </div>
 
@@ -123,7 +126,7 @@ blurInput=$('blur'), dotGainInput=$('dotGain'), contrastInput=$('contrast'),
 gammaInput=$('gamma'), inkVarInput=$('inkVar'), offsetInput=$('offset'),
 jitterInput=$('jitter'), stitchLengthInput=$('stitchLength'),
 stitchSpacingInput=$('stitchSpacing'), stitchWidthInput=$('stitchWidth'),
-lightAngleInput=$('lightAngle'),
+lightAngleInput=$('lightAngle'), colorCompressionInput=$('colorCompression'),
 convertButton=$('convert'), downloadButton=$('download'), copyButton=$('copy'),
 statusEl=$('status'), preview=$('preview'), svgBox=$('svgBox'),
 output=$('output'), controlsPanel=$('controlsPanel'), toggleControls=$('toggleControls');
@@ -156,11 +159,12 @@ function refreshLabels(){
  $('stitchSpacingValue').textContent=stitchSpacingInput.value;
  $('stitchWidthValue').textContent=stitchWidthInput.value;
  $('lightAngleValue').textContent=lightAngleInput.value;
+ $('colorCompressionValue').textContent=colorCompressionInput.value;
 }
 refreshLabels();
 updateControlsVisibility();
 
-['spacing','blur','dotGain','contrast','gamma','inkVar','offset','jitter','stitchLength','stitchSpacing','stitchWidth','lightAngle'].forEach(id=>{
+['spacing','blur','dotGain','contrast','gamma','inkVar','offset','jitter','stitchLength','stitchSpacing','stitchWidth','lightAngle','colorCompression'].forEach(id=>{
  $(id).oninput=refreshLabels;
 });
 
@@ -204,7 +208,8 @@ convertButton.onclick=()=>{
     +stitchLengthInput.value,
     +stitchSpacingInput.value,
     +stitchWidthInput.value,
-    +lightAngleInput.value
+    +lightAngleInput.value,
+    +colorCompressionInput.value/100
    );
    svgBox.innerHTML=r.svg;
    output.value=r.pathData.join('\n');
@@ -228,7 +233,7 @@ copyButton.onclick=async()=>{
  statusEl.textContent='Path SVG copiati negli appunti.';
 };
 
-function makePrint(img,style,spacing,blur,dotGain,contrast,gamma,inkVariability,offset,jitter,stitchLength,stitchSpacing,stitchWidth,lightAngle){
+function makePrint(img,style,spacing,blur,dotGain,contrast,gamma,inkVariability,offset,jitter,stitchLength,stitchSpacing,stitchWidth,lightAngle,colorCompression){
  const max=1100, scale=Math.min(1,max/Math.max(img.width,img.height));
  const w=Math.max(1,Math.round(img.width*scale)), h=Math.max(1,Math.round(img.height*scale));
  const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
@@ -237,7 +242,7 @@ function makePrint(img,style,spacing,blur,dotGain,contrast,gamma,inkVariability,
  const rgb=ctx.getImageData(0,0,w,h).data;
 
  if(style==='embroidery'){
-  const r=embroideryStitches(rgb,w,h,stitchLength,stitchSpacing,stitchWidth,lightAngle);
+  const r=embroideryStitches(rgb,w,h,stitchLength,stitchSpacing,stitchWidth,lightAngle,colorCompression);
   return r;
  }
 
@@ -324,7 +329,51 @@ ${groupMarkup}
  };
 }
 
-function embroideryStitches(rgb,w,h,stitchLength,stitchSpacing,stitchWidth,lightAngle){
+function buildPalette(rgb,w,h,strength){
+ const samples=[];
+ const stride=Math.max(1,Math.round(Math.sqrt((w*h)/3000)));
+ for(let y=0;y<h;y+=stride){
+  for(let x=0;x<w;x+=stride){
+   const i=(y*w+x)*4;
+   samples.push([rgb[i],rgb[i+1],rgb[i+2]]);
+  }
+ }
+ if(!samples.length)return [];
+
+ const k=Math.max(2,Math.min(32,Math.round(2+strength*30)));
+ let centers=[];
+ for(let i=0;i<k;i++){
+  centers.push(samples[Math.floor(Math.random()*samples.length)].slice());
+ }
+
+ for(let iter=0;iter<8;iter++){
+  const sums=centers.map(()=>[0,0,0,0]);
+  for(const c of samples){
+   let best=0, bestD=Infinity;
+   for(let j=0;j<centers.length;j++){
+    const dr=c[0]-centers[j][0], dg=c[1]-centers[j][1], db=c[2]-centers[j][2];
+    const d=dr*dr+dg*dg+db*db;
+    if(d<bestD){bestD=d;best=j}
+   }
+   sums[best][0]+=c[0];sums[best][1]+=c[1];sums[best][2]+=c[2];sums[best][3]++;
+  }
+  centers=centers.map((c,j)=>sums[j][3]?[sums[j][0]/sums[j][3],sums[j][1]/sums[j][3],sums[j][2]/sums[j][3]]:c);
+ }
+ return centers;
+}
+
+function nearestPaletteColor(color,palette){
+ if(!palette.length)return color;
+ let best=palette[0], bestD=Infinity;
+ for(const p of palette){
+  const dr=color[0]-p[0], dg=color[1]-p[1], db=color[2]-p[2];
+  const d=dr*dr+dg*dg+db*db;
+  if(d<bestD){bestD=d;best=p}
+ }
+ return best;
+}
+
+function embroideryStitches(rgb,w,h,stitchLength,stitchSpacing,stitchWidth,lightAngle,colorCompression){
  const stitches=[];
  let gray=grayscale(rgb,w,h);
  gray=normalize01(gray);
@@ -337,6 +386,8 @@ function embroideryStitches(rgb,w,h,stitchLength,stitchSpacing,stitchWidth,light
  const lightRad=(lightAngle||315)*Math.PI/180;
  const lightX=Math.cos(lightRad);
  const lightY=Math.sin(lightRad);
+
+ const palette=colorCompression>0?buildPalette(rgb,w,h,colorCompression):[];
 
  function colorAt(x,y){
   const i=(Math.max(0,Math.min(h-1,Math.round(y)))*w+Math.max(0,Math.min(w-1,Math.round(x))))*4;
@@ -425,9 +476,11 @@ function embroideryStitches(rgb,w,h,stitchLength,stitchSpacing,stitchWidth,light
    if(!colors.length)continue;
    const avg=colors.reduce((a,c)=>[a[0]+c[0],a[1]+c[1],a[2]+c[2]],[0,0,0]).map(v=>v/colors.length);
 
-   const base=rgbStr(mixColor(avg,[0,0,0],0.08));
-   const shadow=rgbStr(mixColor(avg,[0,0,0],0.45));
-   const highlight=rgbStr(mixColor(avg,[255,255,255],0.45));
+   const compressed=palette.length?nearestPaletteColor(avg,palette):avg;
+
+   const base=rgbStr(mixColor(compressed,[0,0,0],0.08));
+   const shadow=rgbStr(mixColor(compressed,[0,0,0],0.45));
+   const highlight=rgbStr(mixColor(compressed,[255,255,255],0.45));
 
    const d=pathFromPoints(pts);
    const dShadow=pathFromPoints(pts,-lightX*stitchWidth*0.3,-lightY*stitchWidth*0.3);
