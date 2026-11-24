@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Stampa da giornale · Ricamo · SVG</title>
 <style>
-:root{color-scheme:dark}*{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden}body{background:#101014;color:#e8e8ee;font:15px/1.45 system-ui,sans-serif}.stage{display:flex;height:100dvh;width:100%;touch-action:none}.pane{flex:1 1 50%;position:relative;display:grid;place-items:center;background:#f2ecd8;overflow:hidden}.pane canvas,.pane svg{max-width:100%;max-height:100%;width:auto;height:auto;display:block}.zoomWrap{position:absolute;inset:0;display:grid;place-items:center;transform-origin:50% 50%;will-change:transform}.zoomBar{position:absolute;bottom:10px;right:10px;display:flex;gap:6px;z-index:5}.zoomBar button{background:rgba(15,15,20,.82);padding:6px 10px;font-size:13px;border-radius:8px}.tag{position:absolute;top:10px;left:10px;background:rgba(15,15,20,.72);color:#fff;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:4px 8px;border-radius:6px;pointer-events:none}#toggleControls{position:fixed;bottom:calc(14px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:30;background:#2f6fed;color:#fff;border:0;border-radius:999px;padding:12px 20px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.45)}.controls{position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(20,20,26,.96);backdrop-filter:blur(14px);border-top:1px solid #33333d;padding:16px 16px calc(18px + env(safe-area-inset-bottom));transform:translateY(110%);transition:transform .28s ease;max-height:78dvh;overflow:auto}.controls.open{transform:translateY(0)}.controls h2{margin:0 0 12px;font-size:16px}.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 16px;align-items:end}.ctrl{display:none}.ctrl.visible{display:block}label{display:block;font-size:11px;color:#a8a8b4;margin-bottom:5px}label.check{display:flex;gap:8px;align-items:center;font-size:13px;color:#e8e8ee;margin:0 0 6px}input[type=range]{width:100%}select,input[type=number],input[type=file]{width:100%;background:#0c0c10;color:#e8e8ee;border:1px solid #33333d;border-radius:8px;padding:8px}.actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}button{background:#2f6fed;border:0;color:#fff;padding:10px 14px;border-radius:9px;font-weight:600;cursor:pointer}button.secondary{background:#33333d}button:disabled{opacity:.45;cursor:not-allowed}.status{margin-top:10px;color:#9d9daa;font-size:12px}.hint{margin:2px 0 12px;color:#9d9daa;font-size:12px}#svgBox.checker svg{background:repeating-conic-gradient(#d9d9de 0 25%,#fff 0 50%) 0 0/16px 16px}select:disabled,input:disabled{opacity:.45}textarea{width:100%;height:110px;margin-top:10px;background:#0c0c10;color:#d8d8e2;border:1px solid #2b2b34;border-radius:8px;font:11px/1.4 ui-monospace,monospace;padding:8px;resize:vertical}@media(max-width:640px){.stage{flex-direction:row}.pane{min-width:0}.tag{font-size:9px;padding:3px 6px}}
+:root{color-scheme:dark}*{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden}body{background:#101014;color:#e8e8ee;font:15px/1.45 system-ui,sans-serif}.stage{display:flex;height:100dvh;width:100%;touch-action:none}.pane{flex:1 1 50%;position:relative;display:grid;place-items:center;background:#f2ecd8;overflow:hidden}.pane canvas,.pane svg{max-width:100%;max-height:100%;width:auto;height:auto;display:block}.zoomWrap{position:absolute;inset:0;display:grid;place-items:center;transform-origin:50% 50%;will-change:transform}.zoomBar{position:absolute;bottom:10px;right:10px;display:flex;gap:6px;z-index:5}.zoomBar button{background:rgba(15,15,20,.82);padding:6px 10px;font-size:13px;border-radius:8px}.tag{position:absolute;top:10px;left:10px;background:rgba(15,15,20,.72);color:#fff;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:4px 8px;border-radius:6px;pointer-events:none}#toggleControls{position:fixed;bottom:calc(14px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:30;background:#2f6fed;color:#fff;border:0;border-radius:999px;padding:12px 20px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.45)}.controls{position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(20,20,26,.96);backdrop-filter:blur(14px);border-top:1px solid #33333d;padding:16px 16px calc(18px + env(safe-area-inset-bottom));transform:translateY(110%);transition:transform .28s ease;max-height:78dvh;overflow:auto}.controls.open{transform:translateY(0)}.controls h2{margin:0 0 12px;font-size:16px}.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 16px;align-items:end}.ctrl{display:none}.ctrl.visible{display:block}label{display:block;font-size:11px;color:#a8a8b4;margin-bottom:5px}label.check{display:flex;gap:8px;align-items:center;font-size:13px;color:#e8e8ee;margin:0 0 6px}input[type=range]{width:100%}select,input[type=number],input[type=file]{width:100%;background:#0c0c10;color:#e8e8ee;border:1px solid #33333d;border-radius:8px;padding:8px}.actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}button{background:#2f6fed;border:0;color:#fff;padding:10px 14px;border-radius:9px;font-weight:600;cursor:pointer}button.secondary{background:#33333d}button:disabled{opacity:.45;cursor:not-allowed}.status{margin-top:10px;color:#9d9daa;font-size:12px}.hint{margin:2px 0 12px;color:#9d9daa;font-size:12px}#svgBox{width:100%;height:100%;display:grid;place-items:center;min-width:0;min-height:0}#svgBox svg{max-width:100%;max-height:100%}#svgBox.checker svg{background:repeating-conic-gradient(#d9d9de 0 25%,#fff 0 50%) 0 0/16px 16px}select:disabled,input:disabled{opacity:.45}textarea{width:100%;height:110px;margin-top:10px;background:#0c0c10;color:#d8d8e2;border:1px solid #2b2b34;border-radius:8px;font:11px/1.4 ui-monospace,monospace;padding:8px;resize:vertical}@media(max-width:640px){.stage{flex-direction:row}.pane{min-width:0}.tag{font-size:9px;padding:3px 6px}}
 </style></head><body>
 <div class="stage"><div class="pane"><div class="zoomWrap"><canvas id="preview"></canvas></div><div class="zoomBar"><button type="button" data-zoom="out">−</button><button type="button" data-zoom="in">+</button><button type="button" data-zoom="fit">Adatta</button></div><span class="tag">Originale</span></div><div class="pane"><div class="zoomWrap"><div id="svgBox"></div></div><div class="zoomBar"><button type="button" data-zoom="out">−</button><button type="button" data-zoom="in">+</button><button type="button" data-zoom="fit">Adatta</button></div><span class="tag">Stampa</span></div></div><button id="toggleControls">Controlli</button>
 <div class="controls" id="controlsPanel"><h2>Impostazioni stampa</h2><p class="hint" id="modeHint"></p><div class="row">
@@ -31,11 +31,12 @@
 <div class="ctrl" data-modes="vector"><label for="vectorSimplify">Semplificazione contorno: <span id="vectorSimplifyValue"></span> px</label><input type="range" id="vectorSimplify" min="0" max="5" step="0.5"></div>
 <div class="ctrl" data-modes="vector"><label for="vectorDespeckle">Elimina macchie sotto: <span id="vectorDespeckleValue"></span> px²</label><input type="range" id="vectorDespeckle" min="0" max="200"></div>
 <div class="ctrl" data-modes="vector"><label class="check"><input type="checkbox" id="vectorSmooth"> Curve morbide (Bézier)</label></div>
-<div class="ctrl visible" data-modes="cutout"><label for="bgMethod">Metodo</label><select id="bgMethod"><option value="ai">IA · qualsiasi soggetto (RMBG-1.4)</option><option value="color">Sfondo a tinta unita (senza IA)</option></select></div>
+<div class="ctrl visible" data-modes="cutout"><label for="bgMethod">Metodo</label><select id="bgMethod"><option value="auto">Automatico</option><option value="ai">IA · qualsiasi soggetto (RMBG-1.4)</option><option value="color">Sfondo a tinta unita (senza IA)</option></select></div>
 <div class="ctrl" data-modes="cutout"><label for="bgTolerance">Tolleranza colore sfondo: <span id="bgToleranceValue"></span></label><input type="range" id="bgTolerance" min="2" max="60"></div>
 <div class="ctrl" data-modes="cutout"><label class="check"><input type="checkbox" id="bgHoles"> Togli lo sfondo anche nei buchi interni</label></div>
-<div class="ctrl" data-modes="cutout"><label for="bgOutput">Esporta come</label><select id="bgOutput"><option value="photo">Foto ritagliata (immagine nell’SVG)</option><option value="vector">Tracciato vettoriale a colori</option><option value="silhouette">Sagoma vettoriale (un colore)</option></select></div>
-<div class="ctrl" data-modes="cutout"><label for="cutColors">Colori del tracciato: <span id="cutColorsValue"></span></label><input type="range" id="cutColors" min="2" max="32"></div>
+<div class="ctrl" data-modes="cutout"><label class="check"><input type="checkbox" id="cutTrace"> Converti in tracciati SVG (ideale per i loghi)</label></div>
+<div class="ctrl" data-modes="cutout"><label for="cutColors">Colori del tracciato: <span id="cutColorsValue"></span></label><input type="range" id="cutColors" min="0" max="32"></div>
+<div class="ctrl" data-modes="cutout"><label class="check"><input type="checkbox" id="cutSilhouette"> Sagoma in un solo colore</label></div>
 <div class="ctrl" data-modes="cutout"><label for="maskThreshold">Soglia bordo soggetto: <span id="maskThresholdValue"></span>%</label><input type="range" id="maskThreshold" min="5" max="95"></div>
 <div class="ctrl" data-modes="cutout"><label class="check"><input type="checkbox" id="cropToSubject"> Ritaglia attorno al soggetto</label></div>
 <div class="ctrl visible" data-modes="cmyk mono comic embroidery vector cutout"><button id="convert">Converti</button></div></div>
@@ -56,7 +57,7 @@ const PRESETS={
   // Ricamo a macchina: riempimento tatami, colonne satin, palette di fili limitata.
   embroidery:{threadColors:8,stitchLength:16,stitchSpacing:3,stitchWidth:3,lightAngle:315,skipBackground:false},
   vector:{vectorColors:8,vectorBW:false,vectorThreshold:50,vectorSimplify:1,vectorDespeckle:12,vectorSmooth:true},
-  cutout:{bgMethod:'ai',bgTolerance:18,bgHoles:false,bgOutput:'photo',cutColors:12,maskThreshold:50,cropToSubject:true}
+  cutout:{bgMethod:'auto',bgTolerance:18,bgHoles:false,cutTrace:false,cutColors:0,cutSilhouette:false,maskThreshold:50,cropToSubject:true}
 };
 const HINTS={
   mono:'Retino a 45° su carta da giornale: punti tondi che si fondono nei mezzitoni, alte luci che saltano, ombre che si impastano.',
@@ -64,7 +65,7 @@ const HINTS={
   comic:'Fumetto d’epoca: nero al tratto senza retino, colori da 64 tinte piatte (0/25/50/100% per C, M, Y) in punti Ben-Day.',
   embroidery:'Ricamo a macchina: aree di colore filo riempite a punto tatami, parti strette a punto satin.',
   vector:'Ricalco vettoriale a campiture piatte (posterizzazione).',
-  cutout:'Scontorna il soggetto ed esporta un SVG con sfondo trasparente. Il modello IA RMBG-1.4 (BRIA AI, gratuito solo per uso non commerciale) gira nel browser: la prima volta scarica circa 44 MB, poi resta in cache.'
+  cutout:'Scontorna il soggetto ed esporta un SVG con sfondo trasparente. Con «Automatico» i loghi su fondo uniforme usano il metodo senza IA, più netto; attiva «Converti in tracciati» per avere path SVG. Il modello IA RMBG-1.4 (BRIA AI, gratuito solo per uso non commerciale) gira nel browser: la prima volta scarica circa 44 MB, poi resta in cache.'
 };
 const modeSettings={};
 let currentMode=null;
@@ -86,8 +87,8 @@ toggleControls.onclick=()=>{controlsPanel.classList.toggle('open');toggleControl
 /* ---------- Controlli ---------- */
 const paramInputs=()=>[...document.querySelectorAll('.controls input[type=range],.controls input[type=checkbox],.controls select:not(#style)')];
 function readParams(){const p={};paramInputs().forEach(el=>p[el.id]=el.type==='checkbox'?el.checked:el.tagName==='SELECT'?el.value:+el.value);return p}
-function refreshLabels(){document.querySelectorAll('.controls input[type=range]').forEach(el=>{const s=$(el.id+'Value');if(s)s.textContent=el.value})}
-function updateBWControls(){$('vectorColors').disabled=$('vectorBW').checked;$('vectorThreshold').disabled=!$('vectorBW').checked;const color=$('bgMethod').value==='color',out=$('bgOutput').value;$('bgTolerance').disabled=!color;$('bgHoles').disabled=!color;$('cutColors').disabled=out!=='vector'}
+function refreshLabels(){document.querySelectorAll('.controls input[type=range]').forEach(el=>{const s=$(el.id+'Value');if(s)s.textContent=el.id==='cutColors'&&+el.value===0?'Auto':el.value})}
+function updateBWControls(){$('vectorColors').disabled=$('vectorBW').checked;$('vectorThreshold').disabled=!$('vectorBW').checked;const color=$('bgMethod').value!=='ai',trace=$('cutTrace').checked;$('bgTolerance').disabled=!color;$('bgHoles').disabled=!color;$('cutSilhouette').disabled=!trace;$('cutColors').disabled=!trace||$('cutSilhouette').checked}
 function applySettings(obj){for(const[k,v]of Object.entries(obj)){const el=$(k);if(!el)continue;if(el.type==='checkbox')el.checked=!!v;else el.value=v}refreshLabels();updateBWControls()}
 function switchMode(){
   if(currentMode){const cur=readParams(),saved={};Object.keys(PRESETS[currentMode]).forEach(k=>saved[k]=cur[k]);modeSettings[currentMode]=saved}
@@ -97,7 +98,7 @@ function switchMode(){
   $('modeHint').textContent=HINTS[currentMode]||'';
 }
 paramInputs().forEach(el=>el.addEventListener('input',refreshLabels));
-['vectorBW','bgMethod','bgOutput'].forEach(id=>$(id).addEventListener('change',updateBWControls));
+['vectorBW','bgMethod','cutTrace','cutSilhouette'].forEach(id=>$(id).addEventListener('change',updateBWControls));
 styleInput.onchange=switchMode;
 switchMode();
 
@@ -312,6 +313,15 @@ async function aiMask(canvas,onStatus){
   if(m.channels===1)return Uint8Array.from(m.data);
   const out=new Uint8Array(canvas.width*canvas.height);for(let i=0;i<out.length;i++)out[i]=m.data[i*m.channels];return out;
 }
+// Quota dei pixel del bordo vicini al colore dominante: alta = fondo uniforme (loghi, prodotti su fondo pieno).
+function borderUniformity(rgb,w,h,tol){
+  const idx=[];for(let x=0;x<w;x++)idx.push(x,(h-1)*w+x);for(let y=1;y<h-1;y++)idx.push(y*w,y*w+w-1);
+  const bins=new Map();for(const i of idx){const p=i*4;const key=(rgb[p]>>4)<<8|(rgb[p+1]>>4)<<4|(rgb[p+2]>>4);let b=bins.get(key);if(!b)bins.set(key,b=[0,0,0,0]);b[0]+=rgb[p];b[1]+=rgb[p+1];b[2]+=rgb[p+2];b[3]++}
+  let best=null;bins.forEach(b=>{if(!best||b[3]>best[3])best=b});
+  const bg=toLab(best[0]/best[3],best[1]/best[3],best[2]/best[3]);let ok=0;
+  for(const i of idx){const p=i*4;if(rgb[p+3]<128){ok++;continue}const l=toLab(rgb[p],rgb[p+1],rgb[p+2]);if(Math.hypot(l[0]-bg[0],l[1]-bg[1],l[2]-bg[2])<=tol)ok++}
+  return ok/idx.length;
+}
 // Senza IA: stima il colore dello sfondo dal bordo e lo riempie per contiguità (o ovunque, se richiesto).
 function colorMask(rgb,w,h,tol,holes){
   const n=w*h,bins=new Map();
@@ -333,35 +343,51 @@ function colorMask(rgb,w,h,tol,holes){
 function toLab(r,g,b){const f=t=>t>.008856?Math.cbrt(t):7.787*t+16/116,R=SRGB_LIN[Math.round(r)],G=SRGB_LIN[Math.round(g)],B=SRGB_LIN[Math.round(b)],fx=f((.4124*R+.3576*G+.1805*B)/.95047),fy=f(.2126*R+.7152*G+.0722*B),fz=f((.0193*R+.1192*G+.9505*B)/1.08883);return[116*fy-16,500*(fx-fy),200*(fy-fz)]}
 function resampleMask(mask,W,H,w,h){if(W===w&&H===h)return mask;const f=Float32Array.from(mask),out=new Uint8Array(w*h);for(let y=0;y<h;y++)for(let x=0;x<w;x++)out[y*w+x]=Math.round(sampleBilinear(f,W,H,(x+.5)*W/w-.5,(y+.5)*H/h-.5));return out}
 function maskBounds(mask,w,h,thr,pad){let x0=w,y0=h,x1=-1,y1=-1;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(mask[y*w+x]>=thr){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}if(x1<0)return null;x0=Math.max(0,x0-pad);y0=Math.max(0,y0-pad);x1=Math.min(w-1,x1+pad);y1=Math.min(h-1,y1+pad);return[x0,y0,x1-x0+1,y1-y0+1]}
+// I pixel antialias (a metà fra due colori, o fra colore e sfondo) prendono il colore pieno più vicino
+// invece di formare sottili strisce di un terzo colore lungo i bordi.
+function absorbFringe(labels,err,w,h){
+  const n=w*h,out=Int16Array.from(labels);let pending=[];
+  for(let i=0;i<n;i++)if(out[i]>=0&&err[i]>225){out[i]=-2;pending.push(i)}
+  for(let pass=0;pass<8&&pending.length;pass++){
+    const next=[],set=[];
+    for(const i of pending){const x=i%w;let best=-2,bc=0;const cnt=new Map();for(const j of[x>0?i-1:-1,x<w-1?i+1:-1,i-w,i+w]){if(j<0||j>=n||out[j]<0)continue;const c=(cnt.get(out[j])||0)+1;cnt.set(out[j],c);if(c>bc){bc=c;best=out[j]}}if(best>=0)set.push(i,best);else next.push(i)}
+    for(let k=0;k<set.length;k+=2)out[set[k]]=set[k+1];
+    pending=next;
+  }
+  for(const i of pending)out[i]=labels[i];
+  return out;
+}
 async function removeBackground(img,p,onStatus){
   const scale=Math.min(1,CUT_MAX/Math.max(img.width,img.height)),W=Math.max(1,Math.round(img.width*scale)),H=Math.max(1,Math.round(img.height*scale));
   const cv=document.createElement('canvas');cv.width=W;cv.height=H;const ctx=cv.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0,W,H);
   const full=ctx.getImageData(0,0,W,H);
-  const key=p.bgMethod==='ai'?'ai':`color|${p.bgTolerance}|${p.bgHoles}`;
+  const method=p.bgMethod==='auto'?(borderUniformity(full.data,W,H,p.bgTolerance)>=.9?'color':'ai'):p.bgMethod;
+  const key=method==='ai'?'ai':`color|${p.bgTolerance}|${p.bgHoles}`;
   let mask;
   if(maskCache&&maskCache.img===img&&maskCache.key===key)mask=maskCache.mask;
-  else{mask=p.bgMethod==='ai'?await aiMask(cv,onStatus):colorMask(full.data,W,H,p.bgTolerance,p.bgHoles);maskCache={img,key,mask}}
+  else{mask=method==='ai'?await aiMask(cv,onStatus):colorMask(full.data,W,H,p.bgTolerance,p.bgHoles);maskCache={img,key,mask}}
+  const via=p.bgMethod==='auto'?(method==='ai'?' Metodo: IA.':' Metodo: sfondo a tinta unita.'):'';
   onStatus('Composizione SVG…');
   const thr=Math.round(p.maskThreshold/100*255);
-  if(p.bgOutput==='photo'){
+  if(!p.cutTrace){
     const d=full.data;for(let i=0;i<mask.length;i++)d[i*4+3]=Math.min(d[i*4+3],mask[i]);
     const box=p.cropToSubject?maskBounds(mask,W,H,Math.max(8,thr*.3),2):null;
     if(p.cropToSubject&&!box)throw new Error('nessun soggetto trovato: prova ad abbassare la soglia o a cambiare metodo.');
     const [bx,by,bw,bh]=box||[0,0,W,H],out=document.createElement('canvas');out.width=bw;out.height=bh;
     const octx=out.getContext('2d');octx.putImageData(full,-bx,-by);
     const url=out.toDataURL('image/png');
-    return{svg:`<svg xmlns="http://www.w3.org/2000/svg" width="${bw}" height="${bh}" viewBox="0 0 ${bw} ${bh}"><image width="${bw}" height="${bh}" href="${url}"/></svg>`,pathData:[],count:1,note:`Foto ${bw}×${bh} px con trasparenza.`};
+    return{svg:`<svg xmlns="http://www.w3.org/2000/svg" width="${bw}" height="${bh}" viewBox="0 0 ${bw} ${bh}"><image width="${bw}" height="${bh}" href="${url}"/></svg>`,pathData:[],count:1,note:`Foto ${bw}×${bh} px con trasparenza.`+via};
   }
-  // uscite vettoriali: stessa risoluzione delle altre modalità
-  const vs=Math.min(1,1100/Math.max(W,H)),w=Math.max(1,Math.round(W*vs)),h=Math.max(1,Math.round(H*vs)),m=resampleMask(mask,W,H,w,h);
-  const small=document.createElement('canvas');small.width=w;small.height=h;const sctx=small.getContext('2d',{willReadFrequently:true});sctx.drawImage(cv,0,0,w,h);
-  const rgb=sctx.getImageData(0,0,w,h).data,n=w*h,fg=i=>m[i]>=thr&&rgb[i*4+3]>0;
+  // tracciati: alla piena risoluzione di lavoro, così i bordi dei loghi restano precisi
+  const w=W,h=H,m=mask,rgb=full.data,n=w*h,fg=i=>m[i]>=thr&&rgb[i*4+3]>0,k=Math.max(1,w/1100);
   let labels,palette;
-  if(p.bgOutput==='silhouette'){labels=new Int16Array(n);for(let i=0;i<n;i++)labels[i]=fg(i)?0:-1;palette=[[17,17,17]]}
-  else{const R=new Float32Array(n),G=new Float32Array(n),B=new Float32Array(n);for(let i=0;i<n;i++){R[i]=rgb[i*4];G[i]=rgb[i*4+1];B[i]=rgb[i*4+2]}({labels,palette}=quantizeLab(R,G,B,n,p.cutColors,mulberry32(9),fg));labels=modeFilter(labels,w,h)}
+  if(p.cutSilhouette){labels=new Int16Array(n);for(let i=0;i<n;i++)labels[i]=fg(i)?0:-1;palette=[[17,17,17]]}
+  else{const R=new Float32Array(n),G=new Float32Array(n),B=new Float32Array(n);for(let i=0;i<n;i++){R[i]=rgb[i*4];G[i]=rgb[i*4+1];B[i]=rgb[i*4+2]}const q=quantizeLab(R,G,B,n,p.cutColors,mulberry32(9),fg,true);palette=q.palette;labels=modeFilter(absorbFringe(q.labels,q.fitErr,w,h),w,h)}
   const box=p.cropToSubject?maskBounds(m,w,h,thr,2):null;
   if(p.cropToSubject&&!box)throw new Error('nessun soggetto trovato: prova ad abbassare la soglia o a cambiare metodo.');
-  return labelsToSvg(labels,palette,w,h,{despeckle:12,simplify:p.bgOutput==='silhouette'?.8:1,smooth:true,seams:p.bgOutput!=='silhouette',view:box});
+  const r=labelsToSvg(labels,palette,w,h,{despeckle:Math.round(30*k*k),simplify:.7*k,smooth:true,seams:!p.cutSilhouette,view:box});
+  r.note=(p.cutSilhouette?'Sagoma vettoriale.':`Tracciati in ${r.pathData.length} colori.`)+via;
+  return r;
 }
 
 /* ---------- Retino ---------- */
@@ -409,7 +435,7 @@ function circlePath(cx,cy,r){return`M${r2(cx-r)} ${r2(cy)}a${r2(r)} ${r2(r)} 0 1
 
 /* ---------- Etichette, regioni, contorni ---------- */
 const SRGB_LIN=Float32Array.from({length:256},(_,i)=>{const c=i/255;return c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4)});
-function quantizeLab(R,G,B,n,k,rng,include){
+function quantizeLab(R,G,B,n,k,rng,include,robust=false){
   const L=new Float32Array(n),A=new Float32Array(n),Bb=new Float32Array(n),f=t=>t>.008856?Math.cbrt(t):7.787*t+16/116;
   for(let i=0;i<n;i++){const r=SRGB_LIN[Math.round(R[i])|0],g=SRGB_LIN[Math.round(G[i])|0],b=SRGB_LIN[Math.round(B[i])|0],fx=f((.4124*r+.3576*g+.1805*b)/.95047),fy=f(.2126*r+.7152*g+.0722*b),fz=f((.0193*r+.1192*g+.9505*b)/1.08883);L[i]=116*fy-16;A[i]=500*(fx-fy);Bb[i]=200*(fy-fz)}
   const labels=new Int16Array(n).fill(-1),idx=[],stride=Math.max(1,Math.floor(n/8000));
@@ -417,14 +443,24 @@ function quantizeLab(R,G,B,n,k,rng,include){
   if(!idx.length)return{labels,palette:[]};
   const d2=(i,c)=>(L[i]-c[0])**2+(A[i]-c[1])**2+(Bb[i]-c[2])**2;
   // k-means++ (seme fisso: risultati ripetibili)
-  let cen=[];{const i=idx[Math.floor(rng()*idx.length)];cen.push([L[i],A[i],Bb[i]])}
-  const dist=new Float64Array(idx.length).fill(Infinity);
-  while(cen.length<k){const c=cen[cen.length-1];let sum=0;for(let s=0;s<idx.length;s++){const d=d2(idx[s],c);if(d<dist[s])dist[s]=d;sum+=dist[s]}if(sum<=1e-9)break;let t=rng()*sum,s=0;for(;s<idx.length-1;s++){t-=dist[s];if(t<=0)break}const i=idx[s];cen.push([L[i],A[i],Bb[i]])}
-  const nearest=i=>{let best=0,bd=Infinity;for(let j=0;j<cen.length;j++){const d=d2(i,cen[j]);if(d<bd){bd=d;best=j}}return best};
-  for(let it=0;it<12;it++){const sums=cen.map(()=>[0,0,0,0]);for(const i of idx){const s=sums[nearest(i)];s[0]+=L[i];s[1]+=A[i];s[2]+=Bb[i];s[3]++}cen=cen.map((c,j)=>sums[j][3]?[sums[j][0]/sums[j][3],sums[j][1]/sums[j][3],sums[j][2]/sums[j][3]]:c)}
-  const sums=cen.map(()=>[0,0,0,0]);
-  for(let i=0;i<n;i++){if(include&&!include(i))continue;const j=nearest(i);labels[i]=j;const s=sums[j];s[0]+=R[i];s[1]+=G[i];s[2]+=B[i];s[3]++}
-  return{labels,palette:sums.map(s=>s[3]?[s[0]/s[3],s[1]/s[3],s[2]/s[3]]:[128,128,128])};
+  let cen;
+  const nearestIn=(cs,i)=>{let best=0,bd=Infinity;for(let j=0;j<cs.length;j++){const d=d2(i,cs[j]);if(d<bd){bd=d;best=j}}return[best,bd]};
+  const fit=kk=>{
+    const cs=[];{const i=idx[Math.floor(rng()*idx.length)];cs.push([L[i],A[i],Bb[i]])}
+    const dist=new Float64Array(idx.length).fill(Infinity);
+    while(cs.length<kk){const c=cs[cs.length-1];let sum=0;for(let s=0;s<idx.length;s++){const d=d2(idx[s],c);if(d<dist[s])dist[s]=d;sum+=dist[s]}if(sum<=1e-9)break;let t=rng()*sum,s=0;for(;s<idx.length-1;s++){t-=dist[s];if(t<=0)break}const i=idx[s];cs.push([L[i],A[i],Bb[i]])}
+    let cur=cs;
+    for(let it=0;it<12;it++){const sums=cur.map(()=>[0,0,0,0]);for(const i of idx){const s=sums[nearestIn(cur,i)[0]];s[0]+=L[i];s[1]+=A[i];s[2]+=Bb[i];s[3]++}cur=cur.map((c,j)=>sums[j][3]?[sums[j][0]/sums[j][3],sums[j][1]/sums[j][3],sums[j][2]/sums[j][3]]:c)}
+    return cur;
+  };
+  if(k>0)cen=fit(k);
+  else{ // automatico: il minimo numero di colori che descrive bene il 92% dei pixel (i bordi sfumati non contano)
+    for(let kk=2;kk<=16;kk++){cen=fit(kk);const ds=idx.map(i=>nearestIn(cen,i)[1]).sort((a,b)=>a-b);if(ds[Math.floor(ds.length*.92)]<100)break}
+  }
+  const sums=cen.map(()=>[0,0,0,0]),all=cen.map(()=>[0,0,0,0]),fitErr=robust?new Float32Array(n):null;
+  for(let i=0;i<n;i++){if(include&&!include(i))continue;const[j,d]=nearestIn(cen,i);labels[i]=j;if(fitErr)fitErr[i]=d;const s=all[j];s[0]+=R[i];s[1]+=G[i];s[2]+=B[i];s[3]++;if(robust&&d<225){const t=sums[j];t[0]+=R[i];t[1]+=G[i];t[2]+=B[i];t[3]++}}
+  // robust: il colore di ogni campitura viene dai pixel pieni, non dai bordi antialias
+  return{labels,fitErr,palette:all.map((s,j)=>{const t=robust&&sums[j][3]>s[3]*.3?sums[j]:s;return t[3]?[t[0]/t[3],t[1]/t[3],t[2]/t[3]]:[128,128,128]})};
 }
 function modeFilter(labels,w,h){
   const out=new Int16Array(labels.length),vals=new Int16Array(9),cnt=new Uint8Array(9);
@@ -500,9 +536,11 @@ function loopsToD(loops,tol,smooth){
 }
 // Catmull-Rom → Bézier cubiche, mantenendo gli spigoli vivi (svolta > ~65°).
 function smoothClosed(pts){
-  const n=pts.length,tan=pts.map((c,i)=>{const p=pts[(i-1+n)%n],q=pts[(i+1)%n],ax=c[0]-p[0],ay=c[1]-p[1],bx=q[0]-c[0],by=q[1]-c[1],cos=(ax*bx+ay*by)/((Math.hypot(ax,ay)*Math.hypot(bx,by))||1);return cos<.42?[0,0]:[(q[0]-p[0])/6,(q[1]-p[1])/6]});
+  // maniglie lungo la tangente, lunghe 1/3 del segmento adiacente più corto: niente "corna" dove un lato lungo e dritto incontra una curva
+  const n=pts.length,seg=pts.map((a,i)=>{const b=pts[(i+1)%n];return Math.hypot(b[0]-a[0],b[1]-a[1])||1e-6});
+  const hd=pts.map((c,i)=>{const p=pts[(i-1+n)%n],q=pts[(i+1)%n],li=seg[(i-1+n)%n],lo=seg[i],ax=(c[0]-p[0])/li,ay=(c[1]-p[1])/li,bx=(q[0]-c[0])/lo,by=(q[1]-c[1])/lo;if(ax*bx+ay*by<.42)return null;const tx=ax+bx,ty=ay+by,tl=Math.hypot(tx,ty)||1,len=Math.min(li,lo)/3;return[tx/tl*len,ty/tl*len]});
   let d=`M${r2(pts[0][0])} ${r2(pts[0][1])}`;
-  for(let i=0;i<n;i++){const a=pts[i],b=pts[(i+1)%n],ta=tan[i],tb=tan[(i+1)%n];d+=`C${r2(a[0]+ta[0])} ${r2(a[1]+ta[1])} ${r2(b[0]-tb[0])} ${r2(b[1]-tb[1])} ${r2(b[0])} ${r2(b[1])}`}
+  for(let i=0;i<n;i++){const a=pts[i],b=pts[(i+1)%n],ta=hd[i]||[0,0],tb=hd[(i+1)%n]||[0,0];d+=hd[i]||hd[(i+1)%n]?`C${r2(a[0]+ta[0])} ${r2(a[1]+ta[1])} ${r2(b[0]-tb[0])} ${r2(b[1]-tb[1])} ${r2(b[0])} ${r2(b[1])}`:`L${r2(b[0])} ${r2(b[1])}`}
   return d+'Z';
 }
 function simplifyClosedPolygon(pts,tol){if(tol<=0||pts.length<5)return pts.concat([pts[0]]);let far=1,maxD=-1;for(let i=1;i<pts.length;i++){const d=Math.hypot(pts[i][0]-pts[0][0],pts[i][1]-pts[0][1]);if(d>maxD){maxD=d;far=i}}const a=simplifyPolyline(pts.slice(0,far+1),tol),b=simplifyPolyline(pts.slice(far).concat([pts[0]]),tol);return a.slice(0,-1).concat(b)}
