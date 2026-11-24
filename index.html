@@ -269,25 +269,20 @@ function embroidery(rgb,w,h,p){
 
 /* Vettoriale a campiture piatte: quantizzazione Lab, pulizia macchie, contorni condivisi, curve Bézier. */
 function vectorize(rgb,w,h,p){
-  const n=w*h,bw=p.vectorBW;let labels,palette;
+  const n=w*h,bw=p.vectorBW,soft=new Uint8Array(n);let labels,palette;
+  // `soft`: quanto ogni pixel è «pieno» (0–255, 128 = soglia), da cui il contorno sub-pixel
   if(bw){
     labels=new Int16Array(n);const thr=p.vectorThreshold/100*255;
-    for(let i=0,j=0;j<n;i+=4,j++){const a=rgb[i+3]/255,l=luma(rgb[i],rgb[i+1],rgb[i+2])*a+255*(1-a);labels[j]=a>0&&l<thr?0:-1}
+    for(let i=0,j=0;j<n;i+=4,j++){const a=rgb[i+3]/255,l=luma(rgb[i],rgb[i+1],rgb[i+2])*a+255*(1-a);labels[j]=a>0&&l<thr?0:-1;soft[j]=Math.round(255*clamp01(.5+(thr-l)/48))}
     palette=[[0,0,0]];
   }else{
     const R=new Float32Array(n),G=new Float32Array(n),B=new Float32Array(n),empty=new Uint8Array(n);
-    for(let i=0,j=0;j<n;i+=4,j++){R[j]=rgb[i];G[j]=rgb[i+1];B[j]=rgb[i+2];empty[j]=rgb[i+3]===0||(rgb[i]>=232&&rgb[i+1]>=232&&rgb[i+2]>=232)?1:0}
+    for(let i=0,j=0;j<n;i+=4,j++){R[j]=rgb[i];G[j]=rgb[i+1];B[j]=rgb[i+2];empty[j]=rgb[i+3]===0||(rgb[i]>=232&&rgb[i+1]>=232&&rgb[i+2]>=232)?1:0;soft[j]=Math.round(255*clamp01(.5+(232-Math.min(rgb[i],rgb[i+1],rgb[i+2]))/24))}
     ({labels,palette}=quantizeLab(R,G,B,n,p.vectorColors,mulberry32(5),i=>!empty[i]));
   }
-  return labelsToSvg(modeFilter(labels,w,h),palette,w,h,{despeckle:p.vectorDespeckle,simplify:p.vectorSimplify,smooth:p.vectorSmooth,seams:!bw});
-}
-// Etichette → SVG a campiture; `seams` aggiunge un filo di contorno dello stesso colore che chiude le fessure tra regioni.
-function labelsToSvg(labels,palette,w,h,{despeckle=0,simplify=1,smooth=true,seams=true,view=null}={}){
-  if(despeckle>1)cleanLabels(labels,w,h,despeckle);
-  const loops=traceLabels(labels,w,h,palette.length),paths=[];let count=0;
-  palette.forEach((c,k)=>{const r=loopsToD(loops[k],Math.max(0,simplify),smooth);if(!r.d)return;count+=r.count;paths.push({d:r.d,color:rgbStr(c)})});
-  const markup=paths.map(q=>`<path d="${q.d}" fill="${q.color}" fill-rule="evenodd"${seams?` stroke="${q.color}" stroke-width=".6" stroke-linejoin="round"`:''}/>`).join('\n'),v=view||[0,0,w,h];
-  return{svg:`<svg xmlns="http://www.w3.org/2000/svg" width="${v[2]}" height="${v[3]}" viewBox="${v.join(' ')}">${markup}</svg>`,pathData:paths.map(q=>q.d),count};
+  labels=modeFilter(labels,w,h);
+  if(p.vectorDespeckle>1)cleanLabels(labels,w,h,p.vectorDespeckle);
+  return traceSoft({rgb,mask:soft,labels,palette,w,h,level:.5,tol:.25+.35*p.vectorSimplify,curves:p.vectorSmooth});
 }
 
 /* ---------- Ricalco di precisione (loghi) ----------
@@ -295,7 +290,7 @@ function labelsToSvg(labels,palette,w,h,{despeckle=0,simplify=1,smooth=true,seam
    2. ogni colore è un livello che si estende sotto i colori successivi (niente fessure);
    3. contorno sub-pixel per interpolazione (marching squares) e curve Bézier adattate (Schneider)
       con riconoscimento degli spigoli. */
-function traceSoft({rgb,mask,labels,palette,w,h,level,bg=null,view=null}){
+function traceSoft({rgb,mask,labels,palette,w,h,level,bg=null,view=null,tol=.4,curves=true}){
   const n=w*h,K=palette.length,Lx=new Int16Array(n).fill(-1),Bx=new Int16Array(n).fill(-1),Tt=new Float32Array(n).fill(1),Ah=new Float32Array(n);
   const remap=a=>a<level?.5*a/level:.5+.5*(a-level)/(1-level||1);
   const nbs=(i,x,y)=>[x>0?i-1:-1,x<w-1?i+1:-1,y>0?i-w:-1,y<h-1?i+w:-1];
@@ -339,7 +334,7 @@ function traceSoft({rgb,mask,labels,palette,w,h,level,bg=null,view=null}){
     }
     F=blurLight(F,bw,bh,side);
     const loops=contourField(F,bw,bh,.5);let d='';
-    for(const lp of loops){if(Math.abs(polyArea(lp))<minArea)continue;for(const q of lp){q[0]+=x0;q[1]+=y0}d+=fitLoop(lp,.4);count++}
+    for(const lp of loops){if(Math.abs(polyArea(lp))<minArea)continue;for(const q of lp){q[0]+=x0;q[1]+=y0}d+=curves?fitLoop(lp,tol):polyLoop(lp,tol);count++}
     if(d)paths.push({d,color:rgbStr(palette[k]),edge:L>0});
   });
   // i livelli sopra la sagoma hanno un filo di mezzo pixel del proprio colore: copre gli scarti dell'adattamento (≤0,4 px)
@@ -347,6 +342,8 @@ function traceSoft({rgb,mask,labels,palette,w,h,level,bg=null,view=null}){
   return{svg:`<svg xmlns="http://www.w3.org/2000/svg" width="${v[2]}" height="${v[3]}" viewBox="${v.join(' ')}">${markup}</svg>`,pathData:paths.map(q=>q.d),count};
 }
 // sfocatura separabile [side,1,side]: forte (0.5) per bordi a gradini, leggera per bordi già sfumati
+// senza curve: poligono semplificato sul contorno sub-pixel
+function polyLoop(P,tol){const q=simplifyClosedPolygon(P,tol);if(q.length>1&&q[0]===q[q.length-1])q.pop();return'M'+q.map(v=>`${r2(v[0])} ${r2(v[1])}`).join('L')+'Z'}
 function blurLight(F,w,h,side){const c=1/(1+2*side),e=side*c,t=new Float32Array(F.length),o=new Float32Array(F.length),g=(A,x,y)=>x<0||y<0||x>=w||y>=h?0:A[y*w+x];for(let y=0;y<h;y++)for(let x=0;x<w;x++)t[y*w+x]=e*(g(F,x-1,y)+g(F,x+1,y))+c*F[y*w+x];for(let y=0;y<h;y++)for(let x=0;x<w;x++)o[y*w+x]=e*(g(t,x,y-1)+g(t,x,y+1))+c*t[y*w+x];return o}
 function polyArea(P){let a=0;for(let i=0,n=P.length;i<n;i++){const p=P[i],q=P[(i+1)%n];a+=p[0]*q[1]-q[0]*p[1]}return a/2}
 // Marching squares con interpolazione lineare: contorni chiusi alla quota `level` (campo nullo fuori dalla griglia).
