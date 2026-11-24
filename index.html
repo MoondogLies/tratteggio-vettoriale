@@ -290,6 +290,139 @@ function labelsToSvg(labels,palette,w,h,{despeckle=0,simplify=1,smooth=true,seam
   return{svg:`<svg xmlns="http://www.w3.org/2000/svg" width="${v[2]}" height="${v[3]}" viewBox="${v.join(' ')}">${markup}</svg>`,pathData:paths.map(q=>q.d),count};
 }
 
+/* ---------- Ricalco di precisione (loghi) ----------
+   1. per i pixel di bordo stima la frazione di ciascun colore (e dello sfondo) dai valori antialias;
+   2. ogni colore è un livello che si estende sotto i colori successivi (niente fessure);
+   3. contorno sub-pixel per interpolazione (marching squares) e curve Bézier adattate (Schneider)
+      con riconoscimento degli spigoli. */
+function traceSoft({rgb,mask,labels,palette,w,h,level,bg=null,view=null}){
+  const n=w*h,K=palette.length,Lx=new Int16Array(n).fill(-1),Bx=new Int16Array(n).fill(-1),Tt=new Float32Array(n).fill(1),Ah=new Float32Array(n);
+  const remap=a=>a<level?.5*a/level:.5+.5*(a-level)/(1-level||1);
+  const nbs=(i,x,y)=>[x>0?i-1:-1,x<w-1?i+1:-1,y>0?i-w:-1,y<h-1?i+w:-1];
+  const col=i=>[rgb[i*4],rgb[i*4+1],rgb[i*4+2]];
+  const proj=(c,A,B)=>{const dx=A[0]-B[0],dy=A[1]-B[1],dz=A[2]-B[2],L2=dx*dx+dy*dy+dz*dz;if(L2<400)return null;const t=((c[0]-B[0])*dx+(c[1]-B[1])*dy+(c[2]-B[2])*dz)/L2,tc=clamp01(t);return[tc,Math.hypot(c[0]-B[0]-tc*dx,c[1]-B[1]-tc*dy,c[2]-B[2]-tc*dz)]};
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    const i=y*w+x,a=labels[i],N=nbs(i,x,y);let fgNb=-1,bgNb=false,other=-1,bestRes=Infinity,bestT=1;
+    for(const j of N){const l=j<0?-1:labels[j];if(l<0)bgNb=true;else{if(fgNb<0)fgNb=j;if(a>=0&&l!==a){const r=proj(col(i),palette[a],palette[l]);if(r&&r[1]<bestRes){bestRes=r[1];bestT=Math.max(.5,r[0]);other=l}}}}
+    if(a>=0){Lx[i]=a;if(other>=0){Bx[i]=other;Tt[i]=bestT}}else if(fgNb>=0)Lx[i]=labels[fgNb];
+    // copertura dello sfondo: solo sui pixel di confine conserva il valore sfumato
+    if(a>=0&&!bgNb){Ah[i]=1;continue}
+    if(a<0&&fgNb<0){Ah[i]=0;continue}
+    let al=mask[i]/255;
+    if(rgb[i*4+3]<255)al=Math.min(al,rgb[i*4+3]/255);
+    else if(bg){ // colore = miscela fra sfondo e colore pieno vicino (preso due pixel verso l'interno)
+      let ref=null;const toward=a>=0?N.find(j=>j>=0&&labels[j]<0):fgNb,steps=a>=0?-2:3;
+      if(toward!==undefined&&toward>=0){const dx=(toward%w)-x,dy=((toward-toward%w)/w)-y,rx=x+dx*steps,ry=y+dy*steps;if(rx>=0&&ry>=0&&rx<w&&ry<h&&labels[ry*w+rx]===Lx[i])ref=col(ry*w+rx)}
+      const r=proj(col(i),ref||palette[Lx[i]],bg);if(r)al=r[0];
+    }
+    al=a>=0?Math.max(al,level):Math.min(al,level*.999);
+    Ah[i]=remap(al);
+  }
+  // bordi già sfumati (antialias) → sfocatura leggera; bordi a gradini → sfocatura piena
+  let edges=0,soft=0;for(let i=0;i<n;i++){if(labels[i]<0)continue;const tSoft=Bx[i]>=0&&Tt[i]<.9,aSoft=Ah[i]>0&&Ah[i]<1;if(Bx[i]>=0||(Ah[i]>0&&Ah[i]<1)||Ah[i]===remap(level)){edges++;if(tSoft||(aSoft&&Ah[i]>.55))soft++}}
+  const side=edges&&soft/edges>.47?.15:.5;
+  // ordine dei livelli: dal colore più esteso al più piccolo
+  const area=new Float64Array(K),bb=Array.from({length:K},()=>[w,h,-1,-1]);
+  for(let i=0;i<n;i++){const x=i%w,y=(i-x)/w;for(const l of[Lx[i],Bx[i]]){if(l<0)continue;const b=bb[l];if(x<b[0])b[0]=x;if(y<b[1])b[1]=y;if(x>b[2])b[2]=x;if(y>b[3])b[3]=y}if(labels[i]>=0)area[labels[i]]++}
+  const order=[...Array(K).keys()].filter(k=>area[k]>0).sort((a,b)=>area[b]-area[a]),rank=new Int16Array(K).fill(-1);order.forEach((k,r)=>rank[k]=r);
+  const paths=[];let count=0;const minArea=Math.max(2,w*h*.00001);
+  order.forEach((k,L)=>{
+    let x0=w,y0=h,x1=-1,y1=-1;for(const kk of order.slice(L)){const b=bb[kk];if(b[2]<0)continue;x0=Math.min(x0,b[0]);y0=Math.min(y0,b[1]);x1=Math.max(x1,b[2]);y1=Math.max(y1,b[3])}
+    if(x1<0)return;x0=Math.max(0,x0-3);y0=Math.max(0,y0-3);x1=Math.min(w-1,x1+3);y1=Math.min(h-1,y1+3);
+    const bw=x1-x0+1,bh=y1-y0+1;let F=new Float32Array(bw*bh);
+    const gOf=i=>{const a=labels[i],b=Bx[i];return Tt[i]*(rank[a]>=L?1:0)+(1-Tt[i])*(b>=0&&rank[b]>=L?1:0)};
+    for(let y=0;y<bh;y++)for(let x=0;x<bw;x++){
+      const gx=x+x0,gy=y+y0,i=gy*w+gx;if(Lx[i]<0||Ah[i]<=0)continue;let g;
+      if(labels[i]>=0)g=gOf(i);
+      else{g=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const xx=gx+dx,yy=gy+dy;if(xx<0||yy<0||xx>=w||yy>=h)continue;const j=yy*w+xx;if(labels[j]>=0)g=Math.max(g,gOf(j))}}
+      F[y*bw+x]=Math.min(Ah[i],g);
+    }
+    F=blurLight(F,bw,bh,side);
+    const loops=contourField(F,bw,bh,.5);let d='';
+    for(const lp of loops){if(Math.abs(polyArea(lp))<minArea)continue;for(const q of lp){q[0]+=x0;q[1]+=y0}d+=fitLoop(lp,.4);count++}
+    if(d)paths.push({d,color:rgbStr(palette[k]),edge:L>0});
+  });
+  // i livelli sopra la sagoma hanno un filo di mezzo pixel del proprio colore: copre gli scarti dell'adattamento (≤0,4 px)
+  const v=view||[0,0,w,h],markup=paths.map(q=>`<path d="${q.d}" fill="${q.color}" fill-rule="evenodd"${q.edge?` stroke="${q.color}" stroke-width=".5" stroke-linejoin="round"`:''}/>`).join('\n');
+  return{svg:`<svg xmlns="http://www.w3.org/2000/svg" width="${v[2]}" height="${v[3]}" viewBox="${v.join(' ')}">${markup}</svg>`,pathData:paths.map(q=>q.d),count};
+}
+// sfocatura separabile [side,1,side]: forte (0.5) per bordi a gradini, leggera per bordi già sfumati
+function blurLight(F,w,h,side){const c=1/(1+2*side),e=side*c,t=new Float32Array(F.length),o=new Float32Array(F.length),g=(A,x,y)=>x<0||y<0||x>=w||y>=h?0:A[y*w+x];for(let y=0;y<h;y++)for(let x=0;x<w;x++)t[y*w+x]=e*(g(F,x-1,y)+g(F,x+1,y))+c*F[y*w+x];for(let y=0;y<h;y++)for(let x=0;x<w;x++)o[y*w+x]=e*(g(t,x,y-1)+g(t,x,y+1))+c*t[y*w+x];return o}
+function polyArea(P){let a=0;for(let i=0,n=P.length;i<n;i++){const p=P[i],q=P[(i+1)%n];a+=p[0]*q[1]-q[0]*p[1]}return a/2}
+// Marching squares con interpolazione lineare: contorni chiusi alla quota `level` (campo nullo fuori dalla griglia).
+function contourField(F,w,h,level){
+  const val=(x,y)=>x<0||y<0||x>=w||y>=h?0:F[y*w+x],W2=w+2,pts=new Map(),adj=new Map(),segs=[];
+  const hK=(x,y)=>((y+1)*W2+x+1)*2,vK=(x,y)=>((y+1)*W2+x+1)*2+1;
+  const put=(k,x,y)=>{if(!pts.has(k))pts.set(k,[x+.5,y+.5]);return k};
+  const add=(a,b)=>{const s=segs.length>>1;segs.push(a,b);for(const k of[a,b]){const l=adj.get(k);if(l)l.push(s);else adj.set(k,[s])}};
+  for(let y=-1;y<h;y++)for(let x=-1;x<w;x++){
+    const tl=val(x,y),tr=val(x+1,y),br=val(x+1,y+1),bl=val(x,y+1),code=(tl>=level?8:0)|(tr>=level?4:0)|(br>=level?2:0)|(bl>=level?1:0);
+    if(code===0||code===15)continue;
+    const T=()=>put(hK(x,y),x+(level-tl)/(tr-tl),y),R=()=>put(vK(x+1,y),x+1,y+(level-tr)/(br-tr)),B=()=>put(hK(x,y+1),x+(level-bl)/(br-bl),y+1),L=()=>put(vK(x,y),x,y+(level-tl)/(bl-tl)),mid=(tl+tr+br+bl)/4>=level;
+    switch(code){case 1:case 14:add(L(),B());break;case 2:case 13:add(B(),R());break;case 3:case 12:add(L(),R());break;case 4:case 11:add(T(),R());break;case 6:case 9:add(T(),B());break;case 7:case 8:add(L(),T());break;
+      case 5:if(mid){add(L(),T());add(B(),R())}else{add(T(),R());add(L(),B())}break;
+      case 10:if(mid){add(T(),R());add(L(),B())}else{add(L(),T());add(B(),R())}break}
+  }
+  const used=new Uint8Array(segs.length>>1),loops=[];
+  for(let s=0;s<used.length;s++){
+    if(used[s])continue;const loop=[],start=segs[2*s];let cur=s,from=start;
+    for(;;){used[cur]=1;loop.push(pts.get(from).slice());const a=segs[2*cur],b=segs[2*cur+1],next=a===from?b:a;if(next===start)break;const l=adj.get(next),ns=l[0]===cur?l[1]:l[0];if(ns===undefined||used[ns])break;cur=ns;from=next}
+    if(loop.length>2)loops.push(loop);
+  }
+  return loops;
+}
+// Curve di Bézier adattate a un contorno chiuso denso; gli spigoli veri restano vivi.
+function fitLoop(P,tol){
+  const n=P.length,fmt=q=>`${r2(q[0])} ${r2(q[1])}`;
+  if(n<8)return'M'+P.map(fmt).join('L')+'Z';
+  const D=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),idx=i=>((i%n)+n)%n;
+  const walk=(i,dist,dir)=>{let acc=0,j=i;for(let s=0;s<n-1;s++){const k=idx(j+dir);acc+=D(P[j],P[k]);j=k;if(acc>=dist)break}return j};
+  const turn=(i,r)=>{const p=P[walk(i,r,-1)],q=P[walk(i,r,1)],c=P[i],ax=c[0]-p[0],ay=c[1]-p[1],bx=q[0]-c[0],by=q[1]-c[1],l=Math.hypot(ax,ay)*Math.hypot(bx,by);return l?Math.acos(Math.max(-1,Math.min(1,(ax*bx+ay*by)/l))):0};
+  const R=1.6,th=P.map((_,i)=>turn(i,R)),corner=[];
+  for(let i=0;i<n;i++){
+    if(th[i]<.9)continue;
+    if(turn(i,R/2)<.75*th[i]&&th[i]<2)continue; // curva stretta, non spigolo
+    let isMax=true;for(let j=walk(i,R,-1);j!==i;j=idx(j+1))if(th[j]>th[i]){isMax=false;break}
+    if(isMax)for(let j=idx(i+1),e=walk(i,R,1);j!==idx(e+1);j=idx(j+1))if(th[j]>=th[i]){isMax=false;break}
+    if(isMax)corner.push(i);
+  }
+  const isC=new Uint8Array(n);corner.forEach(i=>isC[i]=1);
+  const splits=corner.length?corner:[0,n>>1];
+  const unit=v=>{const l=Math.hypot(v[0],v[1])||1;return[v[0]/l,v[1]/l]};
+  const tanFwd=i=>unit([P[walk(i,R,1)][0]-P[walk(i,R,-1)][0],P[walk(i,R,1)][1]-P[walk(i,R,-1)][1]]);
+  let d='M'+fmt(P[splits[0]]);
+  for(let s=0;s<splits.length;s++){
+    const a=splits[s],b=splits[(s+1)%splits.length],run=[];
+    for(let j=a;;j=idx(j+1)){run.push(P[j]);if(j===b&&run.length>1)break}
+    let len=0;for(let j=1;j<run.length;j++)len+=D(run[j-1],run[j]);
+    // tangente allo spigolo: direzione del lato misurata oltre la piccola zona arrotondata vicino al vertice
+    const near=(arr,dist)=>{let acc=0;for(let j=1;j<arr.length;j++){acc+=D(arr[j-1],arr[j]);if(acc>=dist)return arr[j]}return arr[arr.length-1]};
+    const sideTan=arr=>{const q0=near(arr,Math.min(1.5,len/6)),q1=near(arr,Math.max(Math.min(8,len/2.5),Math.min(1.5,len/6)+.5));return unit([q1[0]-q0[0],q1[1]-q0[1]])};
+    const t1=isC[a]?sideTan(run):tanFwd(a);
+    const rev=run.slice().reverse(),t2=isC[b]?sideTan(rev):tanFwd(b).map(v=>-v);
+    const out=[];fitCubic(run,t1,t2,tol*tol,out);
+    for(const c of out)d+=`C${fmt(c[1])} ${fmt(c[2])} ${fmt(c[3])}`;
+  }
+  return d+'Z';
+}
+function fitCubic(d,t1,t2,err,out){
+  const n=d.length,f=d[0],l=d[n-1],seg=Math.hypot(l[0]-f[0],l[1]-f[1]);
+  if(n<=2){const k=seg/3;out.push([f,[f[0]+t1[0]*k,f[1]+t1[1]*k],[l[0]+t2[0]*k,l[1]+t2[1]*k],l]);return}
+  let u=[0];for(let i=1;i<n;i++)u.push(u[i-1]+Math.hypot(d[i][0]-d[i-1][0],d[i][1]-d[i-1][1]));const tot=u[n-1]||1;u=u.map(v=>v/tot);
+  const gen=u=>{let c00=0,c01=0,c11=0,x0=0,x1=0;for(let i=0;i<n;i++){const t=u[i],m=1-t,b0=m*m*m,b1=3*t*m*m,b2=3*t*t*m,b3=t*t*t,A0=[t1[0]*b1,t1[1]*b1],A1=[t2[0]*b2,t2[1]*b2],tx=d[i][0]-(f[0]*(b0+b1)+l[0]*(b2+b3)),ty=d[i][1]-(f[1]*(b0+b1)+l[1]*(b2+b3));c00+=A0[0]*A0[0]+A0[1]*A0[1];c01+=A0[0]*A1[0]+A0[1]*A1[1];c11+=A1[0]*A1[0]+A1[1]*A1[1];x0+=A0[0]*tx+A0[1]*ty;x1+=A1[0]*tx+A1[1]*ty}
+    const det=c00*c11-c01*c01;let al=det?(x0*c11-x1*c01)/det:0,ar=det?(c00*x1-c01*x0)/det:0;const eps=1e-6*seg;if(al<eps||ar<eps||al>seg*2||ar>seg*2)al=ar=seg/3;
+    return[f,[f[0]+t1[0]*al,f[1]+t1[1]*al],[l[0]+t2[0]*ar,l[1]+t2[1]*ar],l]};
+  const Q=(b,t)=>{const m=1-t;return[m*m*m*b[0][0]+3*t*m*m*b[1][0]+3*t*t*m*b[2][0]+t*t*t*b[3][0],m*m*m*b[0][1]+3*t*m*m*b[1][1]+3*t*t*m*b[2][1]+t*t*t*b[3][1]]};
+  const maxErr=(b,u)=>{let mx=0,sp=n>>1;for(let i=1;i<n-1;i++){const q=Q(b,u[i]),e=(q[0]-d[i][0])**2+(q[1]-d[i][1])**2;if(e>=mx){mx=e;sp=i}}return[mx,sp]};
+  const newton=(b,u)=>u.map((t,i)=>{const m=1-t,q=Q(b,t),q1=[3*(m*m*(b[1][0]-b[0][0])+2*m*t*(b[2][0]-b[1][0])+t*t*(b[3][0]-b[2][0])),3*(m*m*(b[1][1]-b[0][1])+2*m*t*(b[2][1]-b[1][1])+t*t*(b[3][1]-b[2][1]))],q2=[6*(m*(b[2][0]-2*b[1][0]+b[0][0])+t*(b[3][0]-2*b[2][0]+b[1][0])),6*(m*(b[2][1]-2*b[1][1]+b[0][1])+t*(b[3][1]-2*b[2][1]+b[1][1]))],dx=q[0]-d[i][0],dy=q[1]-d[i][1],num=dx*q1[0]+dy*q1[1],den=q1[0]*q1[0]+q1[1]*q1[1]+dx*q2[0]+dy*q2[1];return den?clamp01(t-num/den):t});
+  let b=gen(u),[e,sp]=maxErr(b,u);
+  if(e<err){out.push(b);return}
+  if(e<err*16)for(let k=0;k<6;k++){u=newton(b,u);b=gen(u);[e,sp]=maxErr(b,u);if(e<err){out.push(b);return}}
+  sp=Math.max(1,Math.min(n-2,sp));
+  const tc=(()=>{const v=[d[sp-1][0]-d[sp+1][0],d[sp-1][1]-d[sp+1][1]],L=Math.hypot(v[0],v[1])||1;return[v[0]/L,v[1]/L]})();
+  fitCubic(d.slice(0,sp+1),t1,tc,err,out);fitCubic(d.slice(sp),[-tc[0],-tc[1]],t2,err,out);
+}
+
 /* ---------- Rimozione dello sfondo ---------- */
 const TRANSFORMERS_URL='https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2/+esm',RMBG_MODEL='briaai/RMBG-1.4',CUT_MAX=1600;
 let rmbgPromise=null,maskCache=null;
@@ -338,6 +471,7 @@ function colorMask(rgb,w,h,tol,holes){
   // bordo antialias: leggera sfumatura di un pixel sul confine
   const soft=blurBox(Float32Array.from(isBg,v=>v?0:255),w,h,1),mask=new Uint8Array(n);
   for(let i=0;i<n;i++)mask[i]=Math.round(soft[i]);
+  if(best)mask.bg=[best[0]/best[3],best[1]/best[3],best[2]/best[3]];
   return mask;
 }
 function toLab(r,g,b){const f=t=>t>.008856?Math.cbrt(t):7.787*t+16/116,R=SRGB_LIN[Math.round(r)],G=SRGB_LIN[Math.round(g)],B=SRGB_LIN[Math.round(b)],fx=f((.4124*R+.3576*G+.1805*B)/.95047),fy=f(.2126*R+.7152*G+.0722*B),fz=f((.0193*R+.1192*G+.9505*B)/1.08883);return[116*fy-16,500*(fx-fy),200*(fy-fz)]}
@@ -382,10 +516,11 @@ async function removeBackground(img,p,onStatus){
   const w=W,h=H,m=mask,rgb=full.data,n=w*h,fg=i=>m[i]>=thr&&rgb[i*4+3]>0,k=Math.max(1,w/1100);
   let labels,palette;
   if(p.cutSilhouette){labels=new Int16Array(n);for(let i=0;i<n;i++)labels[i]=fg(i)?0:-1;palette=[[17,17,17]]}
-  else{const R=new Float32Array(n),G=new Float32Array(n),B=new Float32Array(n);for(let i=0;i<n;i++){R[i]=rgb[i*4];G[i]=rgb[i*4+1];B[i]=rgb[i*4+2]}const q=quantizeLab(R,G,B,n,p.cutColors,mulberry32(9),fg,true);palette=q.palette;labels=modeFilter(absorbFringe(q.labels,q.fitErr,w,h),w,h)}
+  else{const R=new Float32Array(n),G=new Float32Array(n),B=new Float32Array(n);for(let i=0;i<n;i++){R[i]=rgb[i*4];G[i]=rgb[i*4+1];B[i]=rgb[i*4+2]}const q=quantizeLab(R,G,B,n,p.cutColors,mulberry32(9),fg,true,w);palette=q.palette;labels=modeFilter(absorbFringe(q.labels,q.fitErr,w,h),w,h)}
   const box=p.cropToSubject?maskBounds(m,w,h,thr,2):null;
   if(p.cropToSubject&&!box)throw new Error('nessun soggetto trovato: prova ad abbassare la soglia o a cambiare metodo.');
-  const r=labelsToSvg(labels,palette,w,h,{despeckle:Math.round(30*k*k),simplify:.7*k,smooth:true,seams:!p.cutSilhouette,view:box});
+  cleanLabels(labels,w,h,Math.max(4,Math.round(w*h*.000025)));
+  const r=traceSoft({rgb,mask:m,labels,palette,w,h,level:thr/255,bg:method==='color'?m.bg:null,view:box});
   r.note=(p.cutSilhouette?'Sagoma vettoriale.':`Tracciati in ${r.pathData.length} colori.`)+via;
   return r;
 }
@@ -435,11 +570,14 @@ function circlePath(cx,cy,r){return`M${r2(cx-r)} ${r2(cy)}a${r2(r)} ${r2(r)} 0 1
 
 /* ---------- Etichette, regioni, contorni ---------- */
 const SRGB_LIN=Float32Array.from({length:256},(_,i)=>{const c=i/255;return c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4)});
-function quantizeLab(R,G,B,n,k,rng,include,robust=false){
+function quantizeLab(R,G,B,n,k,rng,include,robust=false,w=0){
   const L=new Float32Array(n),A=new Float32Array(n),Bb=new Float32Array(n),f=t=>t>.008856?Math.cbrt(t):7.787*t+16/116;
   for(let i=0;i<n;i++){const r=SRGB_LIN[Math.round(R[i])|0],g=SRGB_LIN[Math.round(G[i])|0],b=SRGB_LIN[Math.round(B[i])|0],fx=f((.4124*r+.3576*g+.1805*b)/.95047),fy=f(.2126*r+.7152*g+.0722*b),fz=f((.0193*r+.1192*g+.9505*b)/1.08883);L[i]=116*fy-16;A[i]=500*(fx-fy);Bb[i]=200*(fy-fz)}
   const labels=new Int16Array(n).fill(-1),idx=[],stride=Math.max(1,Math.floor(n/8000));
   for(let i=0;i<n;i+=stride)if(!include||include(i))idx.push(i);
+  // per il conteggio automatico contano solo le zone piatte: bordi sfumati e rumore JPEG non aggiungono colori
+  let autoIdx=idx;
+  if(k<=0&&w>0){const flat=i=>{const x=i%w;for(const j of[x>0?i-1:-1,x<w-1?i+1:-1,i-w,i+w]){if(j<0||j>=n)continue;if((L[i]-L[j])**2+(A[i]-A[j])**2+(Bb[i]-Bb[j])**2>36)return false}return true};const f=idx.filter(flat);if(f.length>idx.length*.2)autoIdx=f}
   if(!idx.length)return{labels,palette:[]};
   const d2=(i,c)=>(L[i]-c[0])**2+(A[i]-c[1])**2+(Bb[i]-c[2])**2;
   // k-means++ (seme fisso: risultati ripetibili)
@@ -455,7 +593,7 @@ function quantizeLab(R,G,B,n,k,rng,include,robust=false){
   };
   if(k>0)cen=fit(k);
   else{ // automatico: il minimo numero di colori che descrive bene il 92% dei pixel (i bordi sfumati non contano)
-    for(let kk=2;kk<=16;kk++){cen=fit(kk);const ds=idx.map(i=>nearestIn(cen,i)[1]).sort((a,b)=>a-b);if(ds[Math.floor(ds.length*.92)]<100)break}
+    for(let kk=1;kk<=16;kk++){cen=fit(kk);const ds=autoIdx.map(i=>nearestIn(cen,i)[1]).sort((a,b)=>a-b);if(ds[Math.floor(ds.length*.95)]<100)break}
   }
   const sums=cen.map(()=>[0,0,0,0]),all=cen.map(()=>[0,0,0,0]),fitErr=robust?new Float32Array(n):null;
   for(let i=0;i<n;i++){if(include&&!include(i))continue;const[j,d]=nearestIn(cen,i);labels[i]=j;if(fitErr)fitErr[i]=d;const s=all[j];s[0]+=R[i];s[1]+=G[i];s[2]+=B[i];s[3]++;if(robust&&d<225){const t=sums[j];t[0]+=R[i];t[1]+=G[i];t[2]+=B[i];t[3]++}}
