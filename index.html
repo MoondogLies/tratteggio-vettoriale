@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Stampa da giornale · Ricamo · SVG</title>
 <style>
-:root{color-scheme:dark}*{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden}body{background:#101014;color:#e8e8ee;font:15px/1.45 system-ui,sans-serif}.stage{display:flex;height:100dvh;width:100%;touch-action:none}.pane{flex:1 1 50%;position:relative;display:grid;place-items:center;background:#f2ecd8;overflow:hidden}.pane canvas,.pane svg{max-width:100%;max-height:100%;width:auto;height:auto;display:block}.zoomWrap{position:absolute;inset:0;display:grid;place-items:center;transform-origin:50% 50%;will-change:transform}.zoomBar{position:absolute;bottom:10px;right:10px;display:flex;gap:6px;z-index:5}.zoomBar button{background:rgba(15,15,20,.82);padding:6px 10px;font-size:13px;border-radius:8px}.tag{position:absolute;top:10px;left:10px;background:rgba(15,15,20,.72);color:#fff;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:4px 8px;border-radius:6px;pointer-events:none}#toggleControls{position:fixed;bottom:calc(14px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:30;background:#2f6fed;color:#fff;border:0;border-radius:999px;padding:12px 20px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.45)}.controls{position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(20,20,26,.96);backdrop-filter:blur(14px);border-top:1px solid #33333d;padding:16px 16px calc(18px + env(safe-area-inset-bottom));transform:translateY(110%);transition:transform .28s ease;max-height:78dvh;overflow:auto}.controls.open{transform:translateY(0)}.controls h2{margin:0 0 12px;font-size:16px}.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 16px;align-items:end}.ctrl{display:none}.ctrl.visible{display:block}label{display:block;font-size:11px;color:#a8a8b4;margin-bottom:5px}label.check{display:flex;gap:8px;align-items:center;font-size:13px;color:#e8e8ee;margin:0 0 6px}input[type=range]{width:100%}select,input[type=number],input[type=file]{width:100%;background:#0c0c10;color:#e8e8ee;border:1px solid #33333d;border-radius:8px;padding:8px}.actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}button{background:#2f6fed;border:0;color:#fff;padding:10px 14px;border-radius:9px;font-weight:600;cursor:pointer}button.secondary{background:#33333d}button:disabled{opacity:.45;cursor:not-allowed}.status{margin-top:10px;color:#9d9daa;font-size:12px}.hint{margin:2px 0 12px;color:#9d9daa;font-size:12px}textarea{width:100%;height:110px;margin-top:10px;background:#0c0c10;color:#d8d8e2;border:1px solid #2b2b34;border-radius:8px;font:11px/1.4 ui-monospace,monospace;padding:8px;resize:vertical}@media(max-width:640px){.stage{flex-direction:row}.pane{min-width:0}.tag{font-size:9px;padding:3px 6px}}
+:root{color-scheme:dark}*{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden}body{background:#101014;color:#e8e8ee;font:15px/1.45 system-ui,sans-serif}.stage{display:flex;height:100dvh;width:100%;touch-action:none}.pane{flex:1 1 50%;position:relative;display:grid;place-items:center;background:#f2ecd8;overflow:hidden}.pane canvas,.pane svg{max-width:100%;max-height:100%;width:auto;height:auto;display:block}.zoomWrap{position:absolute;inset:0;display:grid;place-items:center;transform-origin:50% 50%;will-change:transform}.zoomBar{position:absolute;bottom:10px;right:10px;display:flex;gap:6px;z-index:5}.zoomBar button{background:rgba(15,15,20,.82);padding:6px 10px;font-size:13px;border-radius:8px}.tag{position:absolute;top:10px;left:10px;background:rgba(15,15,20,.72);color:#fff;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:4px 8px;border-radius:6px;pointer-events:none}#toggleControls{position:fixed;bottom:calc(14px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:30;background:#2f6fed;color:#fff;border:0;border-radius:999px;padding:12px 20px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.45)}.controls{position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(20,20,26,.96);backdrop-filter:blur(14px);border-top:1px solid #33333d;padding:16px 16px calc(18px + env(safe-area-inset-bottom));transform:translateY(110%);transition:transform .28s ease;max-height:78dvh;overflow:auto}.controls.open{transform:translateY(0)}.controls h2{margin:0 0 12px;font-size:16px}.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 16px;align-items:end}.ctrl{display:none}.ctrl.visible{display:block}label{display:block;font-size:11px;color:#a8a8b4;margin-bottom:5px}label.check{display:flex;gap:8px;align-items:center;font-size:13px;color:#e8e8ee;margin:0 0 6px}input[type=range]{width:100%}select,input[type=number],input[type=file]{width:100%;background:#0c0c10;color:#e8e8ee;border:1px solid #33333d;border-radius:8px;padding:8px}.actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}button{background:#2f6fed;border:0;color:#fff;padding:10px 14px;border-radius:9px;font-weight:600;cursor:pointer}button.secondary{background:#33333d}button:disabled{opacity:.45;cursor:not-allowed}.status{margin-top:10px;color:#9d9daa;font-size:12px}.hint{margin:2px 0 12px;color:#9d9daa;font-size:12px}#svgBox.checker svg{background:repeating-conic-gradient(#d9d9de 0 25%,#fff 0 50%) 0 0/16px 16px}select:disabled,input:disabled{opacity:.45}textarea{width:100%;height:110px;margin-top:10px;background:#0c0c10;color:#d8d8e2;border:1px solid #2b2b34;border-radius:8px;font:11px/1.4 ui-monospace,monospace;padding:8px;resize:vertical}@media(max-width:640px){.stage{flex-direction:row}.pane{min-width:0}.tag{font-size:9px;padding:3px 6px}}
 </style></head><body>
 <div class="stage"><div class="pane"><div class="zoomWrap"><canvas id="preview"></canvas></div><div class="zoomBar"><button type="button" data-zoom="out">−</button><button type="button" data-zoom="in">+</button><button type="button" data-zoom="fit">Adatta</button></div><span class="tag">Originale</span></div><div class="pane"><div class="zoomWrap"><div id="svgBox"></div></div><div class="zoomBar"><button type="button" data-zoom="out">−</button><button type="button" data-zoom="in">+</button><button type="button" data-zoom="fit">Adatta</button></div><span class="tag">Stampa</span></div></div><button id="toggleControls">Controlli</button>
 <div class="controls" id="controlsPanel"><h2>Impostazioni stampa</h2><p class="hint" id="modeHint"></p><div class="row">
-<div class="ctrl visible" data-modes="cmyk mono comic embroidery vector"><label for="file">Immagine</label><input type="file" id="file" accept="image/*"></div>
-<div class="ctrl visible" data-modes="cmyk mono comic embroidery vector"><label for="style">Stile</label><select id="style"><option value="cmyk">CMYK fuori registro</option><option value="mono" selected>Halftone bianco/nero · giornale</option><option value="comic">Stampa fumetto · Ben-Day</option><option value="embroidery">Ricamo · fili</option><option value="vector">Vettoriale · pieni</option></select></div>
+<div class="ctrl visible" data-modes="cmyk mono comic embroidery vector cutout"><label for="file">Immagine</label><input type="file" id="file" accept="image/*"></div>
+<div class="ctrl visible" data-modes="cmyk mono comic embroidery vector cutout"><label for="style">Stile</label><select id="style"><option value="cmyk">CMYK fuori registro</option><option value="mono" selected>Halftone bianco/nero · giornale</option><option value="comic">Stampa fumetto · Ben-Day</option><option value="embroidery">Ricamo · fili</option><option value="vector">Vettoriale · pieni</option><option value="cutout">Rimuovi sfondo</option></select></div>
 <div class="ctrl" data-modes="cmyk mono comic"><label for="spacing">Passo retino: <span id="spacingValue"></span> px</label><input type="range" id="spacing" min="3" max="14" step="0.5"></div>
 <div class="ctrl" data-modes="cmyk mono comic"><label for="blur">Sfocatura: <span id="blurValue"></span></label><input type="range" id="blur" min="0" max="6" step="0.5"></div>
 <div class="ctrl" data-modes="cmyk mono comic"><label for="dotGain">Ingrasso punto (mezzitoni): <span id="dotGainValue"></span>%</label><input type="range" id="dotGain" min="0" max="40"></div>
@@ -31,7 +31,14 @@
 <div class="ctrl" data-modes="vector"><label for="vectorSimplify">Semplificazione contorno: <span id="vectorSimplifyValue"></span> px</label><input type="range" id="vectorSimplify" min="0" max="5" step="0.5"></div>
 <div class="ctrl" data-modes="vector"><label for="vectorDespeckle">Elimina macchie sotto: <span id="vectorDespeckleValue"></span> px²</label><input type="range" id="vectorDespeckle" min="0" max="200"></div>
 <div class="ctrl" data-modes="vector"><label class="check"><input type="checkbox" id="vectorSmooth"> Curve morbide (Bézier)</label></div>
-<div class="ctrl visible" data-modes="cmyk mono comic embroidery vector"><button id="convert">Converti</button></div></div>
+<div class="ctrl visible" data-modes="cutout"><label for="bgMethod">Metodo</label><select id="bgMethod"><option value="ai">IA · qualsiasi soggetto (RMBG-1.4)</option><option value="color">Sfondo a tinta unita (senza IA)</option></select></div>
+<div class="ctrl" data-modes="cutout"><label for="bgTolerance">Tolleranza colore sfondo: <span id="bgToleranceValue"></span></label><input type="range" id="bgTolerance" min="2" max="60"></div>
+<div class="ctrl" data-modes="cutout"><label class="check"><input type="checkbox" id="bgHoles"> Togli lo sfondo anche nei buchi interni</label></div>
+<div class="ctrl" data-modes="cutout"><label for="bgOutput">Esporta come</label><select id="bgOutput"><option value="photo">Foto ritagliata (immagine nell’SVG)</option><option value="vector">Tracciato vettoriale a colori</option><option value="silhouette">Sagoma vettoriale (un colore)</option></select></div>
+<div class="ctrl" data-modes="cutout"><label for="cutColors">Colori del tracciato: <span id="cutColorsValue"></span></label><input type="range" id="cutColors" min="2" max="32"></div>
+<div class="ctrl" data-modes="cutout"><label for="maskThreshold">Soglia bordo soggetto: <span id="maskThresholdValue"></span>%</label><input type="range" id="maskThreshold" min="5" max="95"></div>
+<div class="ctrl" data-modes="cutout"><label class="check"><input type="checkbox" id="cropToSubject"> Ritaglia attorno al soggetto</label></div>
+<div class="ctrl visible" data-modes="cmyk mono comic embroidery vector cutout"><button id="convert">Converti</button></div></div>
 <div class="actions"><button id="download" class="secondary" disabled>Scarica SVG</button><button id="copy" class="secondary" disabled>Copia path SVG</button></div><div class="status" id="status">Carica un’immagine per iniziare.</div><textarea id="output" readonly placeholder="Qui compariranno i path SVG…"></textarea></div>
 <script>
 'use strict';
@@ -48,14 +55,16 @@ const PRESETS={
   comic:{spacing:5,blur:2,dotGain:15,contrast:15,inkVar:10,offset:1.5,jitter:.8,lineThreshold:22,edgeStrength:70,texture:true},
   // Ricamo a macchina: riempimento tatami, colonne satin, palette di fili limitata.
   embroidery:{threadColors:8,stitchLength:16,stitchSpacing:3,stitchWidth:3,lightAngle:315,skipBackground:false},
-  vector:{vectorColors:8,vectorBW:false,vectorThreshold:50,vectorSimplify:1,vectorDespeckle:12,vectorSmooth:true}
+  vector:{vectorColors:8,vectorBW:false,vectorThreshold:50,vectorSimplify:1,vectorDespeckle:12,vectorSmooth:true},
+  cutout:{bgMethod:'ai',bgTolerance:18,bgHoles:false,bgOutput:'photo',cutColors:12,maskThreshold:50,cropToSubject:true}
 };
 const HINTS={
   mono:'Retino a 45° su carta da giornale: punti tondi che si fondono nei mezzitoni, alte luci che saltano, ombre che si impastano.',
   cmyk:'Quadricromia: retini C 15°, M 75°, Y 0°, K 45°, nero GCR, limite inchiostro 300%, lastre fuori registro.',
   comic:'Fumetto d’epoca: nero al tratto senza retino, colori da 64 tinte piatte (0/25/50/100% per C, M, Y) in punti Ben-Day.',
   embroidery:'Ricamo a macchina: aree di colore filo riempite a punto tatami, parti strette a punto satin.',
-  vector:'Ricalco vettoriale a campiture piatte (posterizzazione).'
+  vector:'Ricalco vettoriale a campiture piatte (posterizzazione).',
+  cutout:'Scontorna il soggetto ed esporta un SVG con sfondo trasparente. Il modello IA RMBG-1.4 (BRIA AI, gratuito solo per uso non commerciale) gira nel browser: la prima volta scarica circa 44 MB, poi resta in cache.'
 };
 const modeSettings={};
 let currentMode=null;
@@ -75,10 +84,10 @@ document.querySelectorAll('[data-zoom]').forEach(btn=>btn.addEventListener('clic
 toggleControls.onclick=()=>{controlsPanel.classList.toggle('open');toggleControls.textContent=controlsPanel.classList.contains('open')?'Chiudi':'Controlli'};
 
 /* ---------- Controlli ---------- */
-const paramInputs=()=>[...document.querySelectorAll('.controls input[type=range],.controls input[type=checkbox]')];
-function readParams(){const p={};paramInputs().forEach(el=>p[el.id]=el.type==='checkbox'?el.checked:+el.value);return p}
+const paramInputs=()=>[...document.querySelectorAll('.controls input[type=range],.controls input[type=checkbox],.controls select:not(#style)')];
+function readParams(){const p={};paramInputs().forEach(el=>p[el.id]=el.type==='checkbox'?el.checked:el.tagName==='SELECT'?el.value:+el.value);return p}
 function refreshLabels(){document.querySelectorAll('.controls input[type=range]').forEach(el=>{const s=$(el.id+'Value');if(s)s.textContent=el.value})}
-function updateBWControls(){$('vectorColors').disabled=$('vectorBW').checked;$('vectorThreshold').disabled=!$('vectorBW').checked}
+function updateBWControls(){$('vectorColors').disabled=$('vectorBW').checked;$('vectorThreshold').disabled=!$('vectorBW').checked;const color=$('bgMethod').value==='color',out=$('bgOutput').value;$('bgTolerance').disabled=!color;$('bgHoles').disabled=!color;$('cutColors').disabled=out!=='vector'}
 function applySettings(obj){for(const[k,v]of Object.entries(obj)){const el=$(k);if(!el)continue;if(el.type==='checkbox')el.checked=!!v;else el.value=v}refreshLabels();updateBWControls()}
 function switchMode(){
   if(currentMode){const cur=readParams(),saved={};Object.keys(PRESETS[currentMode]).forEach(k=>saved[k]=cur[k]);modeSettings[currentMode]=saved}
@@ -88,7 +97,7 @@ function switchMode(){
   $('modeHint').textContent=HINTS[currentMode]||'';
 }
 paramInputs().forEach(el=>el.addEventListener('input',refreshLabels));
-$('vectorBW').addEventListener('change',updateBWControls);
+['vectorBW','bgMethod','bgOutput'].forEach(id=>$(id).addEventListener('change',updateBWControls));
 styleInput.onchange=switchMode;
 switchMode();
 
@@ -98,14 +107,14 @@ function drawPreview(img){const scale=Math.min(1,1100/Math.max(img.width,img.hei
 convertButton.onclick=()=>{
   if(!image){statusEl.textContent='Carica prima un’immagine.';return}
   statusEl.textContent='Elaborazione…';convertButton.disabled=true;
-  setTimeout(()=>{try{
-    const r=makePrint(image,styleInput.value,readParams());
-    svgBox.innerHTML=r.svg;fitView();output.value=r.pathData.join('\n');svg=r.svg;
-    downloadButton.disabled=false;copyButton.disabled=false;
+  setTimeout(async()=>{try{
+    const style=styleInput.value,r=style==='cutout'?await removeBackground(image,readParams(),msg=>statusEl.textContent=msg):makePrint(image,style,readParams());
+    svgBox.innerHTML=r.svg;svgBox.classList.toggle('checker',style==='cutout');fitView();output.value=r.pathData.length?r.pathData.join('\n'):'(foto incorporata come immagine: nessun path vettoriale)';svg=r.svg;
+    downloadButton.disabled=false;copyButton.disabled=!r.pathData.length;
     statusEl.textContent=`${r.count} elementi vettoriali generati.`+(r.note?' '+r.note:'');
   }catch(e){console.error(e);statusEl.textContent='Errore: '+e.message}finally{convertButton.disabled=false}},30);
 };
-downloadButton.onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));a.download=({cmyk:'stampa-cmyk.svg',mono:'halftone-giornale.svg',comic:'stampa-fumetto.svg',embroidery:'ricamo-fili.svg',vector:'tracciato-vettoriale.svg'})[styleInput.value]||'stampa.svg';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+downloadButton.onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));a.download=({cmyk:'stampa-cmyk.svg',mono:'halftone-giornale.svg',comic:'stampa-fumetto.svg',embroidery:'ricamo-fili.svg',vector:'tracciato-vettoriale.svg',cutout:'senza-sfondo.svg'})[styleInput.value]||'stampa.svg';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
 copyButton.onclick=async()=>{try{if(!navigator.clipboard)throw new Error('API appunti non disponibile');await navigator.clipboard.writeText(output.value);statusEl.textContent='Path SVG copiati negli appunti.'}catch(e){output.focus();output.select();let ok=false;try{ok=document.execCommand('copy')}catch(_){}statusEl.textContent=ok?'Path SVG copiati negli appunti.':'Copia non riuscita: testo selezionato, copialo con Ctrl/Cmd+C.'}};
 
 /* ---------- Pipeline ---------- */
@@ -269,12 +278,90 @@ function vectorize(rgb,w,h,p){
     for(let i=0,j=0;j<n;i+=4,j++){R[j]=rgb[i];G[j]=rgb[i+1];B[j]=rgb[i+2];empty[j]=rgb[i+3]===0||(rgb[i]>=232&&rgb[i+1]>=232&&rgb[i+2]>=232)?1:0}
     ({labels,palette}=quantizeLab(R,G,B,n,p.vectorColors,mulberry32(5),i=>!empty[i]));
   }
-  labels=modeFilter(labels,w,h);
-  if(p.vectorDespeckle>1)cleanLabels(labels,w,h,p.vectorDespeckle);
+  return labelsToSvg(modeFilter(labels,w,h),palette,w,h,{despeckle:p.vectorDespeckle,simplify:p.vectorSimplify,smooth:p.vectorSmooth,seams:!bw});
+}
+// Etichette → SVG a campiture; `seams` aggiunge un filo di contorno dello stesso colore che chiude le fessure tra regioni.
+function labelsToSvg(labels,palette,w,h,{despeckle=0,simplify=1,smooth=true,seams=true,view=null}={}){
+  if(despeckle>1)cleanLabels(labels,w,h,despeckle);
   const loops=traceLabels(labels,w,h,palette.length),paths=[];let count=0;
-  palette.forEach((c,k)=>{const r=loopsToD(loops[k],Math.max(0,p.vectorSimplify),p.vectorSmooth);if(!r.d)return;count+=r.count;paths.push({d:r.d,color:rgbStr(c)})});
-  const markup=paths.map(q=>`<path d="${q.d}" fill="${q.color}" fill-rule="evenodd"${bw?'':` stroke="${q.color}" stroke-width=".6" stroke-linejoin="round"`}/>`).join('\n');
-  return{svg:`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${markup}</svg>`,pathData:paths.map(q=>q.d),count};
+  palette.forEach((c,k)=>{const r=loopsToD(loops[k],Math.max(0,simplify),smooth);if(!r.d)return;count+=r.count;paths.push({d:r.d,color:rgbStr(c)})});
+  const markup=paths.map(q=>`<path d="${q.d}" fill="${q.color}" fill-rule="evenodd"${seams?` stroke="${q.color}" stroke-width=".6" stroke-linejoin="round"`:''}/>`).join('\n'),v=view||[0,0,w,h];
+  return{svg:`<svg xmlns="http://www.w3.org/2000/svg" width="${v[2]}" height="${v[3]}" viewBox="${v.join(' ')}">${markup}</svg>`,pathData:paths.map(q=>q.d),count};
+}
+
+/* ---------- Rimozione dello sfondo ---------- */
+const TRANSFORMERS_URL='https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2/+esm',RMBG_MODEL='briaai/RMBG-1.4',CUT_MAX=1600;
+let rmbgPromise=null,maskCache=null;
+function loadRMBG(onStatus){
+  if(!rmbgPromise)rmbgPromise=(async()=>{
+    onStatus('Caricamento libreria IA…');
+    const T=await import(TRANSFORMERS_URL);
+    T.env.allowLocalModels=false;
+    const progress_callback=e=>{if(e.status==='progress'&&/\.onnx$/.test(e.file||''))onStatus(`Download modello IA… ${Math.round(e.progress||0)}% (solo la prima volta)`)};
+    const model=await T.AutoModel.from_pretrained(RMBG_MODEL,{config:{model_type:'custom'},dtype:'q8',progress_callback});
+    const processor=await T.AutoProcessor.from_pretrained(RMBG_MODEL,{config:{do_normalize:true,do_pad:false,do_rescale:true,do_resize:true,image_mean:[.5,.5,.5],feature_extractor_type:'ImageFeatureExtractor',image_std:[1,1,1],resample:2,rescale_factor:1/255,size:{width:1024,height:1024}}});
+    return{T,model,processor};
+  })().catch(e=>{rmbgPromise=null;throw new Error('impossibile caricare il modello IA ('+e.message+'). Serve una connessione per il primo download; in alternativa usa il metodo «Sfondo a tinta unita».')});
+  return rmbgPromise;
+}
+async function aiMask(canvas,onStatus){
+  const{T,model,processor}=await loadRMBG(onStatus);
+  onStatus('Scontorno del soggetto…');
+  const img=T.RawImage.fromCanvas(canvas),{pixel_values}=await processor(img),{output}=await model({input:pixel_values});
+  const m=await T.RawImage.fromTensor(output[0].mul(255).to('uint8')).resize(canvas.width,canvas.height);
+  if(m.channels===1)return Uint8Array.from(m.data);
+  const out=new Uint8Array(canvas.width*canvas.height);for(let i=0;i<out.length;i++)out[i]=m.data[i*m.channels];return out;
+}
+// Senza IA: stima il colore dello sfondo dal bordo e lo riempie per contiguità (o ovunque, se richiesto).
+function colorMask(rgb,w,h,tol,holes){
+  const n=w*h,bins=new Map();
+  const addBorder=i=>{const p=i*4;if(rgb[p+3]<128)return;const key=(rgb[p]>>4)<<8|(rgb[p+1]>>4)<<4|(rgb[p+2]>>4);let b=bins.get(key);if(!b)bins.set(key,b=[0,0,0,0]);b[0]+=rgb[p];b[1]+=rgb[p+1];b[2]+=rgb[p+2];b[3]++};
+  for(let x=0;x<w;x++){addBorder(x);addBorder((h-1)*w+x)}for(let y=1;y<h-1;y++){addBorder(y*w);addBorder(y*w+w-1)}
+  let best=null;bins.forEach(b=>{if(!best||b[3]>best[3])best=b});
+  const bg=best?toLab(best[0]/best[3],best[1]/best[3],best[2]/best[3]):null,dist=new Float32Array(n);
+  for(let i=0,p=0;i<n;i++,p+=4){if(rgb[p+3]<128||!bg){dist[i]=rgb[p+3]<128?0:999;continue}const l=toLab(rgb[p],rgb[p+1],rgb[p+2]);dist[i]=Math.hypot(l[0]-bg[0],l[1]-bg[1],l[2]-bg[2])}
+  const isBg=new Uint8Array(n);
+  if(holes){for(let i=0;i<n;i++)isBg[i]=dist[i]<=tol?1:0}
+  else{const stack=new Int32Array(n);let sp=0;const push=i=>{if(!isBg[i]&&dist[i]<=tol){isBg[i]=1;stack[sp++]=i}};
+    for(let x=0;x<w;x++){push(x);push((h-1)*w+x)}for(let y=0;y<h;y++){push(y*w);push(y*w+w-1)}
+    while(sp){const i=stack[--sp],x=i%w;if(x>0)push(i-1);if(x<w-1)push(i+1);if(i>=w)push(i-w);if(i<n-w)push(i+w)}}
+  // bordo antialias: leggera sfumatura di un pixel sul confine
+  const soft=blurBox(Float32Array.from(isBg,v=>v?0:255),w,h,1),mask=new Uint8Array(n);
+  for(let i=0;i<n;i++)mask[i]=Math.round(soft[i]);
+  return mask;
+}
+function toLab(r,g,b){const f=t=>t>.008856?Math.cbrt(t):7.787*t+16/116,R=SRGB_LIN[Math.round(r)],G=SRGB_LIN[Math.round(g)],B=SRGB_LIN[Math.round(b)],fx=f((.4124*R+.3576*G+.1805*B)/.95047),fy=f(.2126*R+.7152*G+.0722*B),fz=f((.0193*R+.1192*G+.9505*B)/1.08883);return[116*fy-16,500*(fx-fy),200*(fy-fz)]}
+function resampleMask(mask,W,H,w,h){if(W===w&&H===h)return mask;const f=Float32Array.from(mask),out=new Uint8Array(w*h);for(let y=0;y<h;y++)for(let x=0;x<w;x++)out[y*w+x]=Math.round(sampleBilinear(f,W,H,(x+.5)*W/w-.5,(y+.5)*H/h-.5));return out}
+function maskBounds(mask,w,h,thr,pad){let x0=w,y0=h,x1=-1,y1=-1;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(mask[y*w+x]>=thr){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}if(x1<0)return null;x0=Math.max(0,x0-pad);y0=Math.max(0,y0-pad);x1=Math.min(w-1,x1+pad);y1=Math.min(h-1,y1+pad);return[x0,y0,x1-x0+1,y1-y0+1]}
+async function removeBackground(img,p,onStatus){
+  const scale=Math.min(1,CUT_MAX/Math.max(img.width,img.height)),W=Math.max(1,Math.round(img.width*scale)),H=Math.max(1,Math.round(img.height*scale));
+  const cv=document.createElement('canvas');cv.width=W;cv.height=H;const ctx=cv.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0,W,H);
+  const full=ctx.getImageData(0,0,W,H);
+  const key=p.bgMethod==='ai'?'ai':`color|${p.bgTolerance}|${p.bgHoles}`;
+  let mask;
+  if(maskCache&&maskCache.img===img&&maskCache.key===key)mask=maskCache.mask;
+  else{mask=p.bgMethod==='ai'?await aiMask(cv,onStatus):colorMask(full.data,W,H,p.bgTolerance,p.bgHoles);maskCache={img,key,mask}}
+  onStatus('Composizione SVG…');
+  const thr=Math.round(p.maskThreshold/100*255);
+  if(p.bgOutput==='photo'){
+    const d=full.data;for(let i=0;i<mask.length;i++)d[i*4+3]=Math.min(d[i*4+3],mask[i]);
+    const box=p.cropToSubject?maskBounds(mask,W,H,Math.max(8,thr*.3),2):null;
+    if(p.cropToSubject&&!box)throw new Error('nessun soggetto trovato: prova ad abbassare la soglia o a cambiare metodo.');
+    const [bx,by,bw,bh]=box||[0,0,W,H],out=document.createElement('canvas');out.width=bw;out.height=bh;
+    const octx=out.getContext('2d');octx.putImageData(full,-bx,-by);
+    const url=out.toDataURL('image/png');
+    return{svg:`<svg xmlns="http://www.w3.org/2000/svg" width="${bw}" height="${bh}" viewBox="0 0 ${bw} ${bh}"><image width="${bw}" height="${bh}" href="${url}"/></svg>`,pathData:[],count:1,note:`Foto ${bw}×${bh} px con trasparenza.`};
+  }
+  // uscite vettoriali: stessa risoluzione delle altre modalità
+  const vs=Math.min(1,1100/Math.max(W,H)),w=Math.max(1,Math.round(W*vs)),h=Math.max(1,Math.round(H*vs)),m=resampleMask(mask,W,H,w,h);
+  const small=document.createElement('canvas');small.width=w;small.height=h;const sctx=small.getContext('2d',{willReadFrequently:true});sctx.drawImage(cv,0,0,w,h);
+  const rgb=sctx.getImageData(0,0,w,h).data,n=w*h,fg=i=>m[i]>=thr&&rgb[i*4+3]>0;
+  let labels,palette;
+  if(p.bgOutput==='silhouette'){labels=new Int16Array(n);for(let i=0;i<n;i++)labels[i]=fg(i)?0:-1;palette=[[17,17,17]]}
+  else{const R=new Float32Array(n),G=new Float32Array(n),B=new Float32Array(n);for(let i=0;i<n;i++){R[i]=rgb[i*4];G[i]=rgb[i*4+1];B[i]=rgb[i*4+2]}({labels,palette}=quantizeLab(R,G,B,n,p.cutColors,mulberry32(9),fg));labels=modeFilter(labels,w,h)}
+  const box=p.cropToSubject?maskBounds(m,w,h,thr,2):null;
+  if(p.cropToSubject&&!box)throw new Error('nessun soggetto trovato: prova ad abbassare la soglia o a cambiare metodo.');
+  return labelsToSvg(labels,palette,w,h,{despeckle:12,simplify:p.bgOutput==='silhouette'?.8:1,smooth:true,seams:p.bgOutput!=='silhouette',view:box});
 }
 
 /* ---------- Retino ---------- */
